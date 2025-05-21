@@ -1,20 +1,30 @@
-
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from './AuthContext';
+import axiosInstance from '@/lib/axios';
 
 export type PTOStatus = 'pending' | 'approved' | 'denied';
 
 export interface PTORequest {
-  id: string;
-  userId: string;
+  _id: string;
+  id?: string; // MongoDB also sends this
+  userId: string | {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   userName: string;
   userEmail: string;
-  startDate: string; // ISO date string
-  endDate: string; // ISO date string
+  startDate: string;
+  endDate: string;
   reason: string;
   status: PTOStatus;
-  createdAt: string; // ISO date string
+  approvedBy: string | null;
+  approvalDate: string | null;
+  totalDays: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface PTOContextType {
@@ -31,9 +41,7 @@ interface PTOContextType {
 // Create the context
 const PTOContext = createContext<PTOContextType | undefined>(undefined);
 
-// Mock storage
-const STORAGE_KEY = 'pto_requests';
-const PTO_LIMIT_PER_MONTH = 2;
+const API_URL = '/pto'; // Updated to use relative path since baseURL includes /api
 
 // Create a provider component
 export function PTOProvider({ children }: { children: ReactNode }) {
@@ -52,7 +60,7 @@ export function PTOProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // Count user PTOs this month
+  // Count user PTOs this month for display purposes only
   useEffect(() => {
     if (user && requests.length > 0) {
       countUserPTOs();
@@ -63,46 +71,59 @@ export function PTOProvider({ children }: { children: ReactNode }) {
   }, [requests, user]);
 
   const countUserPTOs = () => {
-    if (!user) return;
+    if (!user || !Array.isArray(requests)) {
+      setUserPTOsThisMonth(0);
+      setCanRequestPTO(true);
+      return;
+    }
     
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     
     const userRequestsThisMonth = requests.filter(req => {
-      if (req.userId !== user.id) return false;
+      if (!req || !req.userId) return false;
       
-      const createdDate = new Date(req.createdAt);
-      return (
-        createdDate.getMonth() === currentMonth &&
-        createdDate.getFullYear() === currentYear
-      );
+      // Handle both string and object userId
+      const requestUserId = typeof req.userId === 'string' ? req.userId : req.userId._id;
+      if (requestUserId !== user.id) return false;
+      
+      // Only count approved requests
+      if (req.status !== 'approved') return false;
+      
+      const startDate = new Date(req.startDate);
+      const month = startDate.getMonth();
+      const year = startDate.getFullYear();
+
+      // Count requests for current month and future months
+      if (year > currentYear) {
+        return false; // Don't count future years in current month's count
+      }
+      
+      if (year === currentYear && month === currentMonth) {
+        return true; // Count current month
+      }
+      
+      return false;
     });
     
     setUserPTOsThisMonth(userRequestsThisMonth.length);
-    setCanRequestPTO(userRequestsThisMonth.length < PTO_LIMIT_PER_MONTH);
+    // Remove client-side validation - we'll rely on server validation
+    setCanRequestPTO(true);
   };
 
   const fetchRequests = async (page: number = 1) => {
     setIsLoading(true);
     try {
-      // In a real app, this would be an API call
-      // Mock data for now
-      const storedRequests = localStorage.getItem(STORAGE_KEY);
-      let allRequests: PTORequest[] = storedRequests ? JSON.parse(storedRequests) : [];
+      const endpoint = user?.role === 'admin' ? `${API_URL}/all` : `${API_URL}/user`;
+      const response = await axiosInstance.get(endpoint);
+      const fetchedRequests = Array.isArray(response.data) ? response.data : [];
       
-      if (user) {
-        if (user.role === 'admin') {
-          // Admin sees all requests
-          setRequests(allRequests);
-        } else {
-          // Users see only their own requests
-          setRequests(allRequests.filter(req => req.userId === user.id));
-        }
-      }
+      setRequests(fetchedRequests);
     } catch (error) {
-      console.error('Error fetching PTO requests:', error);
+      console.error('Failed to load PTO requests:', error);
       toast.error('Failed to load PTO requests');
+      setRequests([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -114,52 +135,21 @@ export function PTOProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    if (!canRequestPTO) {
-      toast.error(`You've already used your ${PTO_LIMIT_PER_MONTH} PTO requests this month`);
-      return;
-    }
-    
-    // Check if dates are in the future
-    const now = new Date();
-    now.setHours(0, 0, 0, 0); // Reset time part
-    
-    if (startDate < now) {
-      toast.error('Start date must be in the future');
-      return;
-    }
-    
-    if (endDate < startDate) {
-      toast.error('End date must be after start date');
-      return;
-    }
-    
     try {
-      // Create new request
-      const newRequest: PTORequest = {
-        id: Date.now().toString(),
-        userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
+      const response = await axiosInstance.post(`${API_URL}/request`, {
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
-        reason,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      };
+        reason
+      });
       
-      // Update state
-      const updatedRequests = [...requests, newRequest];
-      setRequests(updatedRequests);
-      
-      // Save to localStorage (in a real app, this would be an API call)
-      const storedRequests = localStorage.getItem(STORAGE_KEY);
-      const allRequests = storedRequests ? JSON.parse(storedRequests) : [];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...allRequests, newRequest]));
-      
+      // Refresh the requests list
+      await fetchRequests();
       toast.success('PTO request submitted successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating PTO request:', error);
-      toast.error('Failed to submit PTO request');
+      // Display the server's validation error message
+      toast.error(error.response?.data?.message || 'Failed to submit PTO request');
+      throw error;
     }
   };
 
@@ -170,22 +160,10 @@ export function PTOProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      // Update the request
-      const updatedRequests = requests.map(req => 
-        req.id === requestId ? { ...req, status } : req
-      );
+      await axiosInstance.patch(`${API_URL}/request/${requestId}`, { status });
       
-      setRequests(updatedRequests);
-      
-      // Save to localStorage (in a real app, this would be an API call)
-      const storedRequests = localStorage.getItem(STORAGE_KEY);
-      const allRequests: PTORequest[] = storedRequests ? JSON.parse(storedRequests) : [];
-      const updatedAllRequests = allRequests.map(req => 
-        req.id === requestId ? { ...req, status } : req
-      );
-      
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAllRequests));
-      
+      // Refresh the requests list
+      await fetchRequests();
       toast.success(`Request ${status} successfully`);
     } catch (error) {
       console.error('Error updating PTO request:', error);
@@ -201,7 +179,7 @@ export function PTOProvider({ children }: { children: ReactNode }) {
       updateRequestStatus,
       fetchRequests,
       userPTOsThisMonth,
-      userPTOLimit: PTO_LIMIT_PER_MONTH,
+      userPTOLimit: 2,
       canRequestPTO
     }}>
       {children}
