@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTime, TimeEntry } from '@/contexts/TimeContext';
 import { format, parseISO, differenceInMinutes } from 'date-fns';
@@ -84,13 +83,13 @@ export const TimeHistoryTable: React.FC = () => {
         </div>
         
         <div className="rounded-md border">
-          <Table>
+          <Table className="table-fixed-width">
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Clock In</TableHead>
-                <TableHead>Clock Out</TableHead>
-                <TableHead>Hours Worked</TableHead>
+                <TableHead className="w-1/4">Date</TableHead>
+                <TableHead className="w-1/4">Clock In</TableHead>
+                <TableHead className="w-1/4">Clock Out</TableHead>
+                <TableHead className="w-1/4">Hours Worked</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

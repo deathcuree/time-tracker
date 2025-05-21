@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +15,7 @@ import { Search } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePTO, PTORequest, PTOStatus } from '@/contexts/PTOContext';
+import { cn } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -69,6 +69,22 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
     return true;
   });
   
+  // Get user ID helper function
+  const getUserId = (request: PTORequest): string => {
+    if (typeof request.userId === 'string') {
+      return request.userId;
+    }
+    return request.userId._id;
+  };
+
+  // Get user name helper function
+  const getUserName = (request: PTORequest): string => {
+    if (typeof request.userId === 'object' && request.userId !== null) {
+      return `${request.userId.firstName} ${request.userId.lastName}`;
+    }
+    return request.userName;
+  };
+  
   // Pagination
   const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
   const paginatedRequests = filteredRequests.slice(
@@ -117,33 +133,33 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
         </div>
         
         <div className="rounded-md border">
-          <Table>
+          <Table className="table-fixed-width">
             <TableHeader>
               <TableRow>
-                {showUserInfo && <TableHead>Employee</TableHead>}
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Status</TableHead>
-                {user?.role === 'admin' && <TableHead>Actions</TableHead>}
+                {showUserInfo && <TableHead className="w-1/6">Employee</TableHead>}
+                <TableHead className={showUserInfo ? "w-1/6" : "w-1/5"}>Start Date</TableHead>
+                <TableHead className={showUserInfo ? "w-1/6" : "w-1/5"}>End Date</TableHead>
+                <TableHead className={showUserInfo ? "w-2/6" : "w-2/5"}>Reason</TableHead>
+                <TableHead className={showUserInfo ? "w-1/6" : "w-1/5"}>Status</TableHead>
+                {user?.role === 'admin' && <TableHead className="w-1/6">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedRequests.length > 0 ? (
                 paginatedRequests.map((request) => (
-                  <TableRow key={request.id}>
+                  <TableRow key={request._id}>
                     {showUserInfo && (
-                      <TableCell className="font-medium">{request.userName}</TableCell>
+                      <TableCell className="font-medium">{getUserName(request)}</TableCell>
                     )}
                     <TableCell>{format(parseISO(request.startDate), 'MMM dd, yyyy')}</TableCell>
                     <TableCell>{format(parseISO(request.endDate), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell className="max-w-xs truncate" title={request.reason}>
+                    <TableCell className="table-cell-truncate" title={request.reason}>
                       {request.reason}
                     </TableCell>
                     <TableCell>
                       <Badge 
                         variant="outline"
-                        className={getStatusColor(request.status)}
+                        className={cn("badge", getStatusColor(request.status))}
                       >
                         {request.status}
                       </Badge>
@@ -156,7 +172,7 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
                               variant="outline"
                               size="sm"
                               className="border-green-500 text-green-500 hover:bg-green-50"
-                              onClick={() => handleStatusChange(request.id, 'approved')}
+                              onClick={() => handleStatusChange(request._id, 'approved')}
                             >
                               Approve
                             </Button>
@@ -164,7 +180,7 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
                               variant="outline"
                               size="sm"
                               className="border-red-500 text-red-500 hover:bg-red-50"
-                              onClick={() => handleStatusChange(request.id, 'denied')}
+                              onClick={() => handleStatusChange(request._id, 'denied')}
                             >
                               Deny
                             </Button>
