@@ -86,10 +86,10 @@ export const TimeHistoryTable: React.FC = () => {
           <Table className="table-fixed-width">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/4">Date</TableHead>
-                <TableHead className="w-1/4">Clock In</TableHead>
-                <TableHead className="w-1/4">Clock Out</TableHead>
-                <TableHead className="w-1/4">Hours Worked</TableHead>
+                <TableHead className="w-1/4 text-center">Date</TableHead>
+                <TableHead className="w-1/4 text-center">Clock In</TableHead>
+                <TableHead className="w-1/4 text-center">Clock Out</TableHead>
+                <TableHead className="w-1/4 text-center">Hours Worked</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

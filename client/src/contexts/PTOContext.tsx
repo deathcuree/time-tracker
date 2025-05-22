@@ -16,13 +16,13 @@ export interface PTORequest {
   };
   userName: string;
   userEmail: string;
-  startDate: string;
-  endDate: string;
+  date: string;
+  hours: number;
   reason: string;
   status: PTOStatus;
   approvedBy: string | null;
   approvalDate: string | null;
-  totalDays: number;
+  expiryYear: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,9 +30,11 @@ export interface PTORequest {
 interface PTOContextType {
   requests: PTORequest[];
   isLoading: boolean;
-  createRequest: (startDate: Date, endDate: Date, reason: string) => Promise<void>;
+  createRequest: (date: Date, hours: number, reason: string) => Promise<void>;
   updateRequestStatus: (requestId: string, status: PTOStatus) => Promise<void>;
   fetchRequests: (page?: number) => Promise<void>;
+  fetchRequestsForMonth: (month: number, year: number) => Promise<number>;
+  fetchYearlyPTOHours: (year: number) => Promise<{ totalHoursUsed: number; yearlyLimit: number; remainingHours: number; }>;
   userPTOsThisMonth: number;
   userPTOLimit: number;
   canRequestPTO: boolean;
@@ -41,7 +43,7 @@ interface PTOContextType {
 // Create the context
 const PTOContext = createContext<PTOContextType | undefined>(undefined);
 
-const API_URL = '/pto'; // Updated to use relative path since baseURL includes /api
+const API_URL = '/pto';
 
 // Create a provider component
 export function PTOProvider({ children }: { children: ReactNode }) {
@@ -91,25 +93,16 @@ export function PTOProvider({ children }: { children: ReactNode }) {
       // Only count approved requests
       if (req.status !== 'approved') return false;
       
-      const startDate = new Date(req.startDate);
-      const month = startDate.getMonth();
-      const year = startDate.getFullYear();
+      const requestDate = new Date(req.date);
+      const month = requestDate.getMonth();
+      const year = requestDate.getFullYear();
 
-      // Count requests for current month and future months
-      if (year > currentYear) {
-        return false; // Don't count future years in current month's count
-      }
-      
-      if (year === currentYear && month === currentMonth) {
-        return true; // Count current month
-      }
-      
-      return false;
+      return year === currentYear && month === currentMonth;
     });
     
-    setUserPTOsThisMonth(userRequestsThisMonth.length);
-    // Remove client-side validation - we'll rely on server validation
-    setCanRequestPTO(true);
+    const hoursUsedThisMonth = userRequestsThisMonth.reduce((total, req) => total + req.hours, 0);
+    setUserPTOsThisMonth(hoursUsedThisMonth);
+    setCanRequestPTO(hoursUsedThisMonth < 16); // 16 hours per month limit
   };
 
   const fetchRequests = async (page: number = 1) => {
@@ -129,7 +122,7 @@ export function PTOProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const createRequest = async (startDate: Date, endDate: Date, reason: string) => {
+  const createRequest = async (date: Date, hours: number, reason: string) => {
     if (!user) {
       toast.error('You must be logged in to request PTO');
       return;
@@ -137,8 +130,8 @@ export function PTOProvider({ children }: { children: ReactNode }) {
     
     try {
       const response = await axiosInstance.post(`${API_URL}/request`, {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
+        date: date.toISOString().split('T')[0],
+        hours,
         reason
       });
       
@@ -171,6 +164,32 @@ export function PTOProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchRequestsForMonth = async (month: number, year: number): Promise<number> => {
+    if (!user) return 0;
+    
+    try {
+      const response = await axiosInstance.get(`${API_URL}/user/month/${year}/${month + 1}`);
+      return response.data.count || 0;
+    } catch (error) {
+      console.error('Error fetching PTO requests for month:', error);
+      toast.error('Failed to load PTO requests for the selected month');
+      return 0;
+    }
+  };
+
+  const fetchYearlyPTOHours = async (year: number) => {
+    if (!user) return { totalHoursUsed: 0, yearlyLimit: 192, remainingHours: 192 };
+    
+    try {
+      const response = await axiosInstance.get(`${API_URL}/user/year/${year}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching yearly PTO hours:', error);
+      toast.error('Failed to load yearly PTO information');
+      return { totalHoursUsed: 0, yearlyLimit: 192, remainingHours: 192 };
+    }
+  };
+
   return (
     <PTOContext.Provider value={{
       requests,
@@ -178,8 +197,10 @@ export function PTOProvider({ children }: { children: ReactNode }) {
       createRequest,
       updateRequestStatus,
       fetchRequests,
+      fetchRequestsForMonth,
+      fetchYearlyPTOHours,
       userPTOsThisMonth,
-      userPTOLimit: 2,
+      userPTOLimit: 16, // 16 hours per month
       canRequestPTO
     }}>
       {children}

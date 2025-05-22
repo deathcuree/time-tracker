@@ -29,13 +29,14 @@ export interface IPTORequest extends Document {
   userId: Types.ObjectId;
   userName: string;
   userEmail: string;
-  startDate: Date;
-  endDate: Date;
+  date: Date;
+  hours: number;
   reason: string;
   status: 'pending' | 'approved' | 'denied';
   approvedBy: Types.ObjectId | null;
   approvalDate: Date | null;
-  totalDays: number;
+  expiryYear: number;
+  month: number; // Virtual field
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,8 +55,8 @@ export interface IRegisterRequest {
 }
 
 export interface IPTORequestBody {
-  startDate: string;
-  endDate: string;
+  date: string;
+  hours: number;
   reason: string;
 }
 
