@@ -50,7 +50,7 @@ export const AppLayout = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background transition-colors duration-300">
+      <div className="min-h-screen flex w-full bg-background">
         <Sidebar className="w-72 flex-shrink-0 bg-sidebar-background border-r border-sidebar-border">
           <SidebarContent className="flex flex-col h-full">
             <div className="p-6 border-b border-sidebar-border">
