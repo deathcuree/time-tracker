@@ -3,11 +3,11 @@ import PTORequest from '../models/PTORequest.js';
 import User from '../models/User.js';
 import { IPTORequest, IPTORequestBody } from '../types/models.js';
 
-const PTO_LIMIT_PER_MONTH = 2;
+const MONTHLY_PTO_HOURS = 16; // 16 hours per month
 
 export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: Response): Promise<void> => {
   try {
-    const { startDate, endDate, reason } = req.body;
+    const { date, hours, reason } = req.body;
     const user = await User.findById(req.user!._id);
 
     if (!user) {
@@ -15,40 +15,42 @@ export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: 
       return;
     }
 
-    // Validate dates are in the future
+    // Validate date is in the future
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    const requestStartDate = new Date(startDate);
-    const requestEndDate = new Date(endDate);
+    const requestDate = new Date(date);
 
-    if (requestStartDate < now) {
-      res.status(400).json({ message: 'Start date must be in the future' });
+    if (requestDate < now) {
+      res.status(400).json({ message: 'Request date must be in the future' });
       return;
     }
 
-    if (requestEndDate < requestStartDate) {
-      res.status(400).json({ message: 'End date must be after start date' });
+    // Validate hours (1-8 hours per day)
+    if (hours < 1 || hours > 8) {
+      res.status(400).json({ message: 'PTO hours must be between 1 and 8' });
       return;
     }
 
-    // Check PTO limit for the month of the start date
-    const startMonth = requestStartDate.getMonth();
-    const startYear = requestStartDate.getFullYear();
+    // Check total hours used in the month
+    const requestMonth = requestDate.getMonth();
+    const requestYear = requestDate.getFullYear();
     
     const existingRequestsThisMonth = await PTORequest.find({
       userId: user._id,
-      status: { $ne: 'denied' }, // Exclude denied requests
+      status: 'approved',
       $expr: {
         $and: [
-          { $eq: [{ $month: '$startDate' }, startMonth + 1] }, // MongoDB months are 1-indexed
-          { $eq: [{ $year: '$startDate' }, startYear] }
+          { $eq: [{ $month: '$date' }, requestMonth + 1] }, // MongoDB months are 1-indexed
+          { $eq: [{ $year: '$date' }, requestYear] }
         ]
       }
     });
 
-    if (existingRequestsThisMonth.length >= PTO_LIMIT_PER_MONTH) {
+    const hoursUsedThisMonth = existingRequestsThisMonth.reduce((total, request) => total + request.hours, 0);
+
+    if (hoursUsedThisMonth + hours > MONTHLY_PTO_HOURS) {
       res.status(400).json({ 
-        message: `You have already reached the limit of ${PTO_LIMIT_PER_MONTH} PTO requests for ${new Date(startYear, startMonth).toLocaleString('default', { month: 'long', year: 'numeric' })}` 
+        message: `You have ${MONTHLY_PTO_HOURS - hoursUsedThisMonth} PTO hours remaining for ${new Date(requestYear, requestMonth).toLocaleString('default', { month: 'long', year: 'numeric' })}` 
       });
       return;
     }
@@ -57,9 +59,10 @@ export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: 
       userId: user._id,
       userName: user.name,
       userEmail: user.email,
-      startDate: requestStartDate,
-      endDate: requestEndDate,
-      reason
+      date: requestDate,
+      hours,
+      reason,
+      expiryYear: requestYear
     }) as IPTORequest;
 
     await ptoRequest.save();
@@ -165,6 +168,68 @@ export const getAllRequests = async (req: Request, res: Response): Promise<void>
     res.json(transformedRequests);
   } catch (error) {
     console.error('Error fetching all requests:', error);
+    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+  }
+};
+
+export const getMonthlyRequestCount = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { year, month } = req.params;
+    const yearNum = parseInt(year);
+    const monthNum = parseInt(month);
+
+    if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+      res.status(400).json({ message: 'Invalid year or month' });
+      return;
+    }
+
+    const startDate = new Date(yearNum, monthNum - 1, 1);
+    const endDate = new Date(yearNum, monthNum, 0); // Last day of the month
+
+    const requests = await PTORequest.find({
+      userId: req.user!._id,
+      status: 'approved',
+      date: { $gte: startDate, $lte: endDate }
+    });
+
+    const totalHours = requests.reduce((total, request) => total + request.hours, 0);
+
+    res.json({ count: totalHours });
+  } catch (error) {
+    console.error('Error getting monthly PTO request count:', error);
+    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+  }
+};
+
+export const getYearlyPTOHours = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const year = parseInt(req.params.year);
+
+    if (isNaN(year)) {
+      res.status(400).json({ message: 'Invalid year' });
+      return;
+    }
+
+    const startDate = new Date(year, 0, 1); // January 1st
+    const endDate = new Date(year, 11, 31); // December 31st
+
+    const requests = await PTORequest.find({
+      userId: req.user!._id,
+      status: 'approved',
+      date: { $gte: startDate, $lte: endDate }
+    });
+
+    const totalHoursUsed = requests.reduce((total, request) => total + request.hours, 0);
+    const yearlyLimit = MONTHLY_PTO_HOURS * 12;
+    const remainingHours = yearlyLimit - totalHoursUsed;
+
+    res.json({
+      totalHoursUsed,
+      yearlyLimit,
+      remainingHours
+    });
+  } catch (error) {
+    console.error('Error getting yearly PTO hours:', error);
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 }; 

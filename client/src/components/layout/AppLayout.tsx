@@ -1,10 +1,11 @@
-
 import React from 'react';
 import { NavLink, Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
-import { Clock, Calendar, User, LogOut, Settings } from 'lucide-react';
+import { Clock, Calendar, User, LogOut, Settings, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/hooks/useTheme';
+import { cn } from '@/lib/utils';
 
 interface MenuItem {
   title: string;
@@ -14,12 +15,13 @@ interface MenuItem {
 
 export const AppLayout = () => {
   const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   
   // If still loading, show a loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center animate-fade-in">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="mt-4 text-lg">Loading...</p>
         </div>
@@ -48,66 +50,94 @@ export const AppLayout = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <Sidebar>
-          <SidebarContent>
-            <div className="p-4">
-              <h1 className="text-xl font-semibold text-white">TimeTracker</h1>
+      <div className="min-h-screen flex w-full bg-background transition-colors duration-300">
+        <Sidebar className="w-72 flex-shrink-0 bg-sidebar-background border-r border-sidebar-border">
+          <SidebarContent className="flex flex-col h-full">
+            <div className="p-6 border-b border-sidebar-border">
+              <h1 className="text-2xl font-semibold text-sidebar-foreground">
+                TimeTracker
+              </h1>
             </div>
             
-            <div className="px-3 py-2">
-              <div className="mb-4 px-4 py-3 rounded-md bg-sidebar-accent/20">
-                <p className="text-sm text-sidebar-foreground/80">Signed in as</p>
-                <p className="font-medium text-sidebar-foreground">{user?.name}</p>
-                <p className="text-xs text-sidebar-foreground/70">{user?.role}</p>
+            <div className="px-4 py-4">
+              <div className="mb-6 px-4 py-4 rounded-lg bg-white/5 border border-white/10">
+                <p className="text-sm text-sidebar-muted">Signed in as</p>
+                <p className="font-medium text-sidebar-foreground text-base mt-1">{user?.name}</p>
+                <p className="text-xs text-sidebar-muted mt-1">{user?.role}</p>
               </div>
             </div>
             
-            <SidebarMenu>
+            <SidebarMenu className="flex-1">
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
+                <SidebarMenuItem key={item.path} className="px-4 mb-1">
                   <SidebarMenuButton asChild>
                     <NavLink 
                       to={item.path}
-                      className={({ isActive }) => 
-                        isActive ? "text-sidebar-accent font-medium" : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
-                      }
+                      className={({ isActive }) => cn(
+                        "transition-colors duration-200 p-3 flex items-center rounded-md",
+                        isActive 
+                          ? "bg-white/10 text-sidebar-foreground" 
+                          : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-white/5"
+                      )}
                     >
                       <item.icon className="w-5 h-5 mr-3" />
-                      <span>{item.title}</span>
+                      <span className="text-base font-medium">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
             
-            <div className="mt-auto p-4">
+            <div className="p-4 border-t border-sidebar-border space-y-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start p-3 h-auto text-sidebar-muted hover:text-sidebar-foreground hover:bg-white/5"
+                onClick={toggleTheme}
+              >
+                {theme === 'dark' ? (
+                  <>
+                    <Sun className="mr-2 h-5 w-5" />
+                    <span className="text-base">Light Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="mr-2 h-5 w-5" />
+                    <span className="text-base">Dark Mode</span>
+                  </>
+                )}
+              </Button>
+              
               <Button 
-                variant="outline" 
-                className="w-full justify-start text-white hover:text-white hover:bg-red-500/20 border-red-500/30"
+                variant="ghost" 
+                className="w-full justify-start p-3 h-auto text-red-400 hover:text-red-300 hover:bg-red-500/10"
                 onClick={logout}
               >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
+                <LogOut className="mr-2 h-5 w-5" />
+                <span className="text-base">Logout</span>
               </Button>
             </div>
           </SidebarContent>
         </Sidebar>
         
-        <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-          <header className="bg-white dark:bg-gray-800 shadow-sm border-b p-4">
-            <div className="flex items-center">
-              <SidebarTrigger />
-              <h2 className="text-lg font-semibold ml-2">Time Tracker App</h2>
+        <div className="flex-1 flex flex-col min-h-screen">
+          <header className="sticky top-0 z-10 bg-background border-b border-border backdrop-blur-sm bg-background/80 supports-[backdrop-filter]:bg-background/60">
+            <div className="h-16 px-6 flex items-center max-w-screen-2xl w-full">
+              <SidebarTrigger className="text-muted-foreground hover:text-foreground lg:hidden" />
+              <h2 className="text-lg font-semibold ml-4 text-foreground">Time Tracker App</h2>
             </div>
           </header>
           
-          <main className="flex-1 overflow-auto p-6">
-            <Outlet />
+          <main className="flex-1 w-full">
+            <div className="px-6 py-8 w-full max-w-screen-2xl mx-auto">
+              <Outlet />
+            </div>
           </main>
           
-          <footer className="bg-white dark:bg-gray-800 border-t py-4 px-6 text-center text-sm text-gray-500">
-            Time Tracker App &copy; {new Date().getFullYear()}
+          <footer className="border-t border-border bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
+            <div className="py-4 px-6 text-center text-sm text-muted-foreground max-w-screen-2xl mx-auto">
+              Time Tracker App &copy; {new Date().getFullYear()}
+            </div>
           </footer>
         </div>
       </div>

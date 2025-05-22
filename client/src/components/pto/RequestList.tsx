@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Select,
@@ -59,8 +59,7 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
-        request.startDate.toLowerCase().includes(query) ||
-        request.endDate.toLowerCase().includes(query) ||
+        request.date.toLowerCase().includes(query) ||
         request.reason.toLowerCase().includes(query) ||
         (showUserInfo && request.userName.toLowerCase().includes(query))
       );
@@ -102,46 +101,38 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
   
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>PTO Requests</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search requests..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as PTOStatus | 'all')}
-          >
-            <SelectTrigger className="w-full md:w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="denied">Denied</SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="flex flex-col sm:flex-row gap-4 p-4">
+        <div className="flex-1">
+          <Input
+            placeholder="Search requests..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-sm"
+          />
         </div>
-        
+        <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="denied">Denied</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <CardContent>
         <div className="rounded-md border">
-          <Table className="table-fixed-width">
+          <Table>
             <TableHeader>
               <TableRow>
-                {showUserInfo && <TableHead className="w-1/6">Employee</TableHead>}
-                <TableHead className={showUserInfo ? "w-1/6" : "w-1/5"}>Start Date</TableHead>
-                <TableHead className={showUserInfo ? "w-1/6" : "w-1/5"}>End Date</TableHead>
-                <TableHead className={showUserInfo ? "w-2/6" : "w-2/5"}>Reason</TableHead>
-                <TableHead className={showUserInfo ? "w-1/6" : "w-1/5"}>Status</TableHead>
-                {user?.role === 'admin' && <TableHead className="w-1/6">Actions</TableHead>}
+                {showUserInfo && <TableHead className="text-center">Employee</TableHead>}
+                <TableHead className="text-center">Date</TableHead>
+                <TableHead className="text-center">Hours</TableHead>
+                <TableHead className="text-center">Reason</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                {user?.role === 'admin' && <TableHead className="text-center">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -149,19 +140,23 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
                 paginatedRequests.map((request) => (
                   <TableRow key={request._id}>
                     {showUserInfo && (
-                      <TableCell className="font-medium">{getUserName(request)}</TableCell>
+                      <TableCell>
+                        {getUserName(request)}
+                        <div className="text-sm text-muted-foreground">
+                          {typeof request.userId === 'object' ? request.userId.email : request.userEmail}
+                        </div>
+                      </TableCell>
                     )}
-                    <TableCell>{format(parseISO(request.startDate), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>{format(parseISO(request.endDate), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell className="table-cell-truncate" title={request.reason}>
-                      {request.reason}
+                    <TableCell>
+                      {format(parseISO(request.date), 'PPP')}
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant="outline"
-                        className={cn("badge", getStatusColor(request.status))}
-                      >
-                        {request.status}
+                      {request.hours} hour{request.hours > 1 ? 's' : ''}
+                    </TableCell>
+                    <TableCell>{request.reason}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(request.status)}>
+                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                       </Badge>
                     </TableCell>
                     {user?.role === 'admin' && (
@@ -245,3 +240,4 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
     </Card>
   );
 };
+

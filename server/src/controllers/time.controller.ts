@@ -100,18 +100,27 @@ export const getTimeStats = async (req: Request, res: Response): Promise<void> =
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     // Get the start of the current week (Monday)
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
 
-    // Get today's entries
+    // Get all active or recent entries that might overlap with today
     const todayEntries = await TimeEntry.find({
       userId: req.user!._id,
-      date: {
-        $gte: today,
-        $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
-      }
+      $or: [
+        // Entries that started today
+        { clockIn: { $gte: today, $lt: tomorrow } },
+        // Entries that are still active (no clockOut)
+        { clockOut: null },
+        // Entries that started before today but ended today
+        { 
+          clockIn: { $lt: today },
+          clockOut: { $gte: today, $lt: tomorrow }
+        }
+      ]
     });
 
     // Get this week's entries
@@ -126,12 +135,14 @@ export const getTimeStats = async (req: Request, res: Response): Promise<void> =
     // Calculate hours for today
     let totalHoursToday = 0;
     todayEntries.forEach(entry => {
-      const clockIn = new Date(entry.clockIn).getTime();
-      const clockOut = entry.clockOut 
-        ? new Date(entry.clockOut).getTime()
-        : (new Date().getTime()); // Use current time for active session
-
-      const hoursWorked = (clockOut - clockIn) / (1000 * 60 * 60);
+      const clockIn = new Date(entry.clockIn);
+      const clockOut = entry.clockOut ? new Date(entry.clockOut) : new Date();
+      
+      // Calculate overlap with today
+      const startTime = clockIn < today ? today : clockIn;
+      const endTime = clockOut > tomorrow ? tomorrow : clockOut;
+      
+      const hoursWorked = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
       totalHoursToday += hoursWorked;
     });
 
