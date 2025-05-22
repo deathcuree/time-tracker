@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink, Outlet, Navigate } from 'react-router-dom';
+import React, { memo } from 'react';
+import { NavLink, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
 import { Clock, Calendar, User, LogOut, Settings, Sun, Moon } from 'lucide-react';
@@ -12,6 +12,32 @@ interface MenuItem {
   path: string;
   icon: React.ElementType;
 }
+
+const NavItem = memo(({ item }: { item: MenuItem }) => {
+  const location = useLocation();
+  const isActive = location.pathname === item.path;
+  
+  return (
+    <SidebarMenuItem className="px-4 mb-1">
+      <SidebarMenuButton asChild>
+        <NavLink 
+          to={item.path}
+          className={cn(
+            "transition-colors duration-200 p-3 flex items-center rounded-md w-full",
+            isActive 
+              ? "bg-primary/90 text-primary-foreground font-semibold shadow-sm ring-1 ring-primary/20" 
+              : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-white/5"
+          )}
+        >
+          <item.icon className="w-5 h-5 mr-3" />
+          <span className="text-base font-medium">{item.title}</span>
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+});
+
+NavItem.displayName = 'NavItem';
 
 export const AppLayout = () => {
   const { user, logout, isAuthenticated, isLoading } = useAuth();
@@ -35,7 +61,7 @@ export const AppLayout = () => {
   }
   
   const commonMenuItems: MenuItem[] = [
-    { title: 'Dashboard', path: '/', icon: Clock },
+    { title: 'Dashboard', path: '/dashboard', icon: Clock },
     { title: 'Time History', path: '/time-history', icon: Calendar },
     { title: 'PTO Requests', path: '/pto-requests', icon: User },
   ];
@@ -69,77 +95,38 @@ export const AppLayout = () => {
             
             <SidebarMenu className="flex-1">
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.path} className="px-4 mb-1">
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.path}
-                      className={({ isActive }) => cn(
-                        "transition-colors duration-200 p-3 flex items-center rounded-md",
-                        isActive 
-                          ? "bg-white/10 text-sidebar-foreground" 
-                          : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-white/5"
-                      )}
-                    >
-                      <item.icon className="w-5 h-5 mr-3" />
-                      <span className="text-base font-medium">{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <NavItem key={item.path} item={item} />
               ))}
             </SidebarMenu>
             
-            <div className="p-4 border-t border-sidebar-border space-y-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start p-3 h-auto text-sidebar-muted hover:text-sidebar-foreground hover:bg-white/5"
-                onClick={toggleTheme}
-              >
-                {theme === 'dark' ? (
-                  <>
-                    <Sun className="mr-2 h-5 w-5" />
-                    <span className="text-base">Light Mode</span>
-                  </>
-                ) : (
-                  <>
-                    <Moon className="mr-2 h-5 w-5" />
-                    <span className="text-base">Dark Mode</span>
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start p-3 h-auto text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                onClick={logout}
-              >
-                <LogOut className="mr-2 h-5 w-5" />
-                <span className="text-base">Logout</span>
-              </Button>
+            <div className="p-4 border-t border-sidebar-border">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  className="text-sidebar-muted hover:text-sidebar-foreground"
+                >
+                  {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={logout}
+                  className="text-sidebar-muted hover:text-sidebar-foreground"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </SidebarContent>
         </Sidebar>
         
-        <div className="flex-1 flex flex-col min-h-screen">
-          <header className="sticky top-0 z-10 bg-background border-b border-border backdrop-blur-sm bg-background/80 supports-[backdrop-filter]:bg-background/60">
-            <div className="h-16 px-6 flex items-center max-w-screen-2xl w-full">
-              <SidebarTrigger className="text-muted-foreground hover:text-foreground lg:hidden" />
-              <h2 className="text-lg font-semibold ml-4 text-foreground">Time Tracker App</h2>
-            </div>
-          </header>
-          
-          <main className="flex-1 w-full">
-            <div className="px-6 py-8 w-full max-w-screen-2xl mx-auto">
-              <Outlet />
-            </div>
-          </main>
-          
-          <footer className="border-t border-border bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
-            <div className="py-4 px-6 text-center text-sm text-muted-foreground max-w-screen-2xl mx-auto">
-              Time Tracker App &copy; {new Date().getFullYear()}
-            </div>
-          </footer>
-        </div>
+        <main className="flex-1 overflow-y-auto">
+          <div className="container mx-auto py-8 px-4">
+            <Outlet />
+          </div>
+        </main>
       </div>
     </SidebarProvider>
   );
