@@ -1,47 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, memo } from 'react';
 import { useTime, TimeEntry } from '@/contexts/TimeContext';
 import { format, parseISO, differenceInMinutes } from 'date-fns';
-import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const ITEMS_PER_PAGE = 10;
+const MONTHS = [
+  { value: 0, label: 'January' },
+  { value: 1, label: 'February' },
+  { value: 2, label: 'March' },
+  { value: 3, label: 'April' },
+  { value: 4, label: 'May' },
+  { value: 5, label: 'June' },
+  { value: 6, label: 'July' },
+  { value: 7, label: 'August' },
+  { value: 8, label: 'September' },
+  { value: 9, label: 'October' },
+  { value: 10, label: 'November' },
+  { value: 11, label: 'December' }
+];
 
-export const TimeHistoryTable: React.FC = () => {
-  const { entries, isLoading } = useTime();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  if (isLoading) {
-    return (
-      <div className="py-8 text-center">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="mt-4">Loading time entries...</p>
-      </div>
-    );
-  }
-  
-  // Sort entries by date (most recent first)
-  const sortedEntries = [...entries].sort((a, b) => {
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
-  
-  // Filter by search query (date)
-  const filteredEntries = sortedEntries.filter(entry => {
-    if (!searchQuery) return true;
-    return entry.date.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-  
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredEntries.length / ITEMS_PER_PAGE);
-  const paginatedEntries = filteredEntries.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-  
-  // Calculate hours worked
+// Memoized table row component
+const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
+  const formatTime = (time: string | null): string => {
+    if (!time) return 'N/A';
+    return format(parseISO(time), 'h:mm a');
+  };
+
   const calculateHoursWorked = (entry: TimeEntry): string => {
     if (!entry.clockOut) return 'Still clocked in';
     
@@ -54,15 +47,73 @@ export const TimeHistoryTable: React.FC = () => {
     
     return `${hours}h ${minutes}m`;
   };
-  
-  const formatTime = (time: string | null): string => {
-    if (!time) return 'N/A';
-    return format(parseISO(time), 'h:mm a');
+
+  return (
+    <TableRow>
+      <TableCell>
+        {format(parseISO(entry.date), 'MMM dd, yyyy')}
+      </TableCell>
+      <TableCell>{formatTime(entry.clockIn)}</TableCell>
+      <TableCell>
+        {entry.clockOut ? (
+          formatTime(entry.clockOut)
+        ) : (
+          <span className="text-primary font-medium">Still clocked in</span>
+        )}
+      </TableCell>
+      <TableCell>{calculateHoursWorked(entry)}</TableCell>
+    </TableRow>
+  );
+});
+
+TimeEntryRow.displayName = 'TimeEntryRow';
+
+export const TimeHistoryTable: React.FC = () => {
+  const { entries, isLoading, fetchEntries, pagination } = useTime();
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
+
+  const [currentFilters, setCurrentFilters] = useState({
+    month: currentMonth,
+    year: currentYear,
+    status: 'all' as 'all' | 'active' | 'completed',
+    page: 1
+  });
+
+  // Get available months for the current year
+  const getAvailableMonths = () => {
+    const months = [...MONTHS];
+    if (currentFilters.year === currentYear) {
+      // If current year, only show months up to current month
+      return months.slice(0, currentMonth + 1).reverse();
+    }
+    return months.reverse(); // Show all months for past years
   };
-  
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+
+  // Fetch entries with current filters
+  const loadEntries = useCallback(() => {
+    fetchEntries({
+      month: currentFilters.month,
+      year: currentFilters.year,
+      status: currentFilters.status,
+      page: currentFilters.page,
+      limit: ITEMS_PER_PAGE
+    });
+  }, [currentFilters, fetchEntries]);
+
+  // Load entries only when filters change
+  useEffect(() => {
+    loadEntries();
+  }, [currentFilters]); // Only depend on currentFilters, not loadEntries
+
+  if (isLoading && entries.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="mt-4">Loading time entries...</p>
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -70,20 +121,52 @@ export const TimeHistoryTable: React.FC = () => {
         <CardTitle>Time History</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by date (YYYY-MM-DD)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
-          </div>
+        <div className="flex items-center gap-4 mb-4">
+          <Select
+            value={currentFilters.month.toString()}
+            onValueChange={(value) => {
+              setCurrentFilters(prev => ({
+                ...prev,
+                month: parseInt(value),
+                page: 1
+              }));
+            }}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Select month" />
+            </SelectTrigger>
+            <SelectContent>
+              {getAvailableMonths().map((month) => (
+                <SelectItem key={month.value} value={month.value.toString()}>
+                  {month.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={currentFilters.status}
+            onValueChange={(value: 'all' | 'active' | 'completed') => {
+              setCurrentFilters(prev => ({
+                ...prev,
+                status: value,
+                page: 1
+              }));
+            }}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Entries</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         
         <div className="rounded-md border">
-          <Table className="table-fixed-width">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-1/4 text-center">Date</TableHead>
@@ -93,22 +176,9 @@ export const TimeHistoryTable: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedEntries.length > 0 ? (
-                paginatedEntries.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell>
-                      {format(parseISO(entry.date), 'MMM dd, yyyy')}
-                    </TableCell>
-                    <TableCell>{formatTime(entry.clockIn)}</TableCell>
-                    <TableCell>
-                      {entry.clockOut ? (
-                        formatTime(entry.clockOut)
-                      ) : (
-                        <span className="text-primary font-medium">Still clocked in</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{calculateHoursWorked(entry)}</TableCell>
-                  </TableRow>
+              {entries.length > 0 ? (
+                entries.map((entry) => (
+                  <TimeEntryRow key={entry.id} entry={entry} />
                 ))
               ) : (
                 <TableRow>
@@ -122,23 +192,23 @@ export const TimeHistoryTable: React.FC = () => {
         </div>
         
         {/* Pagination */}
-        {totalPages > 1 && (
+        {pagination.totalPages > 1 && (
           <div className="flex justify-center space-x-2 mt-4">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={() => setCurrentFilters(prev => ({ ...prev, page: prev.page - 1 }))}
+              disabled={currentFilters.page === 1}
             >
               Previous
             </Button>
             <div className="flex items-center space-x-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
                 <Button
                   key={page}
-                  variant={currentPage === page ? "default" : "outline"}
+                  variant={currentFilters.page === page ? "default" : "outline"}
                   size="sm"
-                  onClick={() => handlePageChange(page)}
+                  onClick={() => setCurrentFilters(prev => ({ ...prev, page }))}
                 >
                   {page}
                 </Button>
@@ -147,8 +217,8 @@ export const TimeHistoryTable: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentFilters(prev => ({ ...prev, page: prev.page + 1 }))}
+              disabled={currentFilters.page === pagination.totalPages}
             >
               Next
             </Button>
