@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,11 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePTO, PTORequest, PTOStatus } from '@/contexts/PTOContext';
 import { cn } from '@/lib/utils';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { debounce } from 'lodash';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -23,14 +26,158 @@ interface RequestListProps {
   showUserInfo?: boolean;
 }
 
+const TableRowSkeleton: React.FC<{ showUserInfo: boolean; isAdmin: boolean }> = ({ showUserInfo, isAdmin }) => {
+  const columns = showUserInfo ? (isAdmin ? 6 : 5) : (isAdmin ? 5 : 4);
+  
+  return (
+    <TableRow>
+      {showUserInfo && (
+        <TableCell>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[200px]" />
+            <Skeleton className="h-3 w-[150px]" />
+          </div>
+        </TableCell>
+      )}
+      <TableCell>
+        <Skeleton className="h-4 w-[120px]" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-[60px]" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-4 w-[200px]" />
+      </TableCell>
+      <TableCell>
+        <Skeleton className="h-6 w-[100px] rounded-full" />
+      </TableCell>
+      {isAdmin && (
+        <TableCell>
+          <div className="flex space-x-2">
+            <Skeleton className="h-8 w-[80px]" />
+            <Skeleton className="h-8 w-[80px]" />
+          </div>
+        </TableCell>
+      )}
+    </TableRow>
+  );
+};
+
 export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }) => {
   const { user } = useAuth();
-  const { requests, isLoading, updateRequestStatus } = usePTO();
+  const { requests, isLoading, updateRequestStatus, fetchRequests } = usePTO();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const isInitialMount = React.useRef(true);
   
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState('');
   const [statusFilter, setStatusFilter] = useState<PTOStatus | 'all'>('all');
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Clear URL and state on page refresh
+  useEffect(() => {
+    const clearSearchAndUrl = () => {
+      setSearchQuery('');
+      setSearchInputValue('');
+      setStatusFilter('all');
+      navigate('.', { replace: true }); // This clears URL parameters
+    };
+
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      if (!document.referrer) {
+        clearSearchAndUrl();
+      } else {
+        // Only restore search params during normal navigation
+        const searchFromUrl = searchParams.get('search');
+        const statusFromUrl = searchParams.get('status') as PTOStatus | 'all';
+        if (searchFromUrl) {
+          setSearchQuery(searchFromUrl);
+          setSearchInputValue(searchFromUrl);
+          setIsSearching(true);
+          debouncedSearch(searchFromUrl);
+        }
+        if (statusFromUrl) {
+          setStatusFilter(statusFromUrl);
+        }
+      }
+    }
+
+    // Add event listener for page refresh
+    const handleBeforeUnload = () => {
+      clearSearchAndUrl();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // Create a stable debounced search function
+  const debouncedSearch = React.useCallback(
+    debounce(async (query: string) => {
+      try {
+        setSearchQuery(query);
+        await fetchRequests(query);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300),
+    [fetchRequests]
+  );
+
+  // Cleanup debounced search on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setSearchInputValue(newValue);
+    if (newValue === '') {
+      // Clear URL parameters when search is cleared
+      navigate('.', { replace: true });
+      fetchRequests('');
+    } else {
+      setIsSearching(true);
+      debouncedSearch(newValue);
+    }
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value as PTOStatus | 'all');
+    setCurrentPage(1);
+    if (value === 'all' && !searchQuery) {
+      // Clear URL parameters when filter is reset and no search
+      navigate('.', { replace: true });
+    }
+  };
   
+  // Update search params when filters change
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      if (!searchQuery && statusFilter === 'all') {
+        // Clear URL parameters when no active filters
+        navigate('.', { replace: true });
+      } else {
+        const params = new URLSearchParams();
+        if (searchQuery) params.set('search', searchQuery);
+        if (statusFilter !== 'all') params.set('status', statusFilter);
+        setSearchParams(params);
+      }
+    }
+  }, [searchQuery, statusFilter]);
+
+  // Initial data load
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
   const getStatusColor = (status: PTOStatus) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -40,12 +187,56 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
     }
   };
   
-  if (isLoading) {
+  // Show skeleton during initial load or search
+  if (isLoading || isSearching) {
     return (
-      <div className="py-8 text-center">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="mt-4">Loading PTO requests...</p>
-      </div>
+      <Card>
+        <div className="flex flex-col sm:flex-row gap-4 p-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              type="search"
+              placeholder="Search by employee name, email, month (May), date, hours, reason, or status..."
+              value={searchInputValue}
+              onChange={handleSearchChange}
+              className="pl-9 max-w-sm [&::-webkit-search-cancel-button]:hover:cursor-pointer [&::-webkit-search-cancel-button]:appearance-auto"
+            />
+          </div>
+          <Select value={statusFilter} disabled>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {showUserInfo && <TableHead className="text-center">Employee</TableHead>}
+                  <TableHead className="text-center">Date</TableHead>
+                  <TableHead className="text-center">Hours</TableHead>
+                  <TableHead className="text-center">Reason</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  {user?.role === 'admin' && <TableHead className="text-center">Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <TableRowSkeleton 
+                    key={index} 
+                    showUserInfo={showUserInfo} 
+                    isAdmin={user?.role === 'admin'}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
   
@@ -53,16 +244,6 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
     // Status filter
     if (statusFilter !== 'all' && request.status !== statusFilter) {
       return false;
-    }
-    
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        request.date.toLowerCase().includes(query) ||
-        request.reason.toLowerCase().includes(query) ||
-        (showUserInfo && request.userName.toLowerCase().includes(query))
-      );
     }
     
     return true;
@@ -102,15 +283,17 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
   return (
     <Card>
       <div className="flex flex-col sm:flex-row gap-4 p-4">
-        <div className="flex-1">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search requests..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-sm"
+            type="search"
+            placeholder="Search by employee name, email, month (May), date, hours, reason, or status..."
+            value={searchInputValue}
+            onChange={handleSearchChange}
+            className="pl-9 max-w-sm [&::-webkit-search-cancel-button]:hover:cursor-pointer [&::-webkit-search-cancel-button]:appearance-auto"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+        <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
