@@ -2,8 +2,54 @@ import { Request, Response } from 'express';
 import PTORequest from '../models/PTORequest.js';
 import User from '../models/User.js';
 import { IPTORequest, IPTORequestBody } from '../types/models.js';
+import { format } from 'date-fns';
 
 const MONTHLY_PTO_HOURS = 16; // 16 hours per month
+
+// Helper function to create date search conditions
+const createDateSearchConditions = (searchStr: string) => {
+  // Convert month names to numbers (1-12)
+  const monthMap: { [key: string]: string } = {
+    'january': '01', 'february': '02', 'march': '03', 'april': '04',
+    'may': '05', 'june': '06', 'july': '07', 'august': '08',
+    'september': '09', 'october': '10', 'november': '11', 'december': '12'
+  };
+
+  const searchLower = searchStr.toLowerCase();
+  const conditions = [];
+
+  // Check if search string matches a month name
+  for (const [monthName, monthNum] of Object.entries(monthMap)) {
+    if (monthName.includes(searchLower) || searchLower.includes(monthName)) {
+      conditions.push({
+        $expr: {
+          $eq: [
+            { $month: '$date' },
+            parseInt(monthNum)
+          ]
+        }
+      });
+    }
+  }
+
+  // Add condition for searching by formatted date string
+  conditions.push({
+    $expr: {
+      $regexMatch: {
+        input: {
+          $dateToString: {
+            date: '$date',
+            format: '%Y-%m-%d'
+          }
+        },
+        regex: searchStr,
+        options: 'i'
+      }
+    }
+  });
+
+  return conditions;
+};
 
 export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: Response): Promise<void> => {
   try {
@@ -75,7 +121,29 @@ export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: 
 
 export const getUserRequests = async (req: Request, res: Response): Promise<void> => {
   try {
-    const requests = await PTORequest.find({ userId: req.user!._id })
+    const { search } = req.query;
+    let query: any = { userId: req.user!._id };
+
+    if (search) {
+      const searchStr = (search as string).toLowerCase();
+      const dateConditions = createDateSearchConditions(searchStr);
+
+      query = {
+        $and: [
+          { userId: req.user!._id },
+          {
+            $or: [
+              { reason: { $regex: searchStr, $options: 'i' } },
+              { status: { $regex: searchStr, $options: 'i' } },
+              { hours: isNaN(Number(search)) ? null : Number(search) },
+              ...dateConditions
+            ].filter(condition => condition !== null)
+          }
+        ]
+      };
+    }
+
+    const requests = await PTORequest.find(query)
       .populate('userId', 'firstName lastName email')
       .sort({ createdAt: -1 }) as IPTORequest[];
       
@@ -155,14 +223,75 @@ export const getAllRequests = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const requests = await PTORequest.find()
-      .populate('userId', 'firstName lastName email')
-      .sort({ createdAt: -1 }) as IPTORequest[];
+    const { search } = req.query;
+    let pipeline: any[] = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userDetails'
+        }
+      },
+      {
+        $unwind: '$userDetails'
+      }
+    ];
+
+    if (search) {
+      const searchStr = (search as string).toLowerCase();
+      const searchTerms = searchStr.split(/\s+/).filter(term => term.length > 0);
+      const dateConditions = createDateSearchConditions(searchStr);
+
+      if (searchTerms.length > 0) {
+        type SearchCondition = {
+          $or?: Array<{ [key: string]: any }>;
+          hours?: number;
+          $expr?: any;
+        };
+        
+        const searchConditions: SearchCondition[] = searchTerms.map(term => ({
+          $or: [
+            { reason: { $regex: term, $options: 'i' } },
+            { status: { $regex: term, $options: 'i' } },
+            { 'userDetails.firstName': { $regex: term, $options: 'i' } },
+            { 'userDetails.lastName': { $regex: term, $options: 'i' } },
+            { 'userDetails.email': { $regex: term, $options: 'i' } }
+          ]
+        }));
+
+        // Add number search only for the full search string (not split terms)
+        if (!isNaN(Number(searchStr))) {
+          searchConditions.push({ hours: Number(searchStr) });
+        }
+
+        // Add date conditions
+        searchConditions.push(...dateConditions);
+
+        pipeline.push({
+          $match: {
+            $or: searchConditions
+          }
+        });
+      }
+    }
+
+    pipeline.push({
+      $sort: { createdAt: -1 }
+    });
+
+    const requests = await PTORequest.aggregate(pipeline);
 
     const transformedRequests = requests.map(request => ({
-      ...request.toObject(),
-      userName: request.userId ? `${(request.userId as any).firstName} ${(request.userId as any).lastName}` : 'Unknown User',
-      userEmail: (request.userId as any).email || 'No Email'
+      ...request,
+      userId: {
+        _id: request.userDetails._id,
+        firstName: request.userDetails.firstName,
+        lastName: request.userDetails.lastName,
+        email: request.userDetails.email
+      },
+      userName: `${request.userDetails.firstName} ${request.userDetails.lastName}`,
+      userEmail: request.userDetails.email
     }));
 
     res.json(transformedRequests);

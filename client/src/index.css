@@ -78,6 +78,42 @@
     --sidebar-accent: 217 91% 60%;
     --sidebar-border: 216 34% 17%;
   }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Add smooth theme transition to all color properties */
+  *, *::before, *::after {
+    transition: background-color 200ms ease-in-out,
+                border-color 200ms ease-in-out,
+                color 200ms ease-in-out,
+                fill 200ms ease-in-out,
+                stroke 200ms ease-in-out,
+                opacity 200ms ease-in-out,
+                box-shadow 200ms ease-in-out;
+  }
+
+  /* Exclude transition from elements where it might cause issues */
+  .no-transition, 
+  .no-transition *,
+  input[type="checkbox"],
+  input[type="radio"],
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce,
+  .animate-ping {
+    transition: none !important;
+  }
 }
 
 @layer base {
