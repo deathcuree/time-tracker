@@ -32,7 +32,7 @@ interface PTOContextType {
   isLoading: boolean;
   createRequest: (date: Date, hours: number, reason: string) => Promise<void>;
   updateRequestStatus: (requestId: string, status: PTOStatus) => Promise<void>;
-  fetchRequests: (page?: number) => Promise<void>;
+  fetchRequests: (searchQuery?: string) => Promise<void>;
   fetchRequestsForMonth: (month: number, year: number) => Promise<number>;
   fetchYearlyPTOHours: (year: number) => Promise<{ totalHoursUsed: number; yearlyLimit: number; remainingHours: number; }>;
   userPTOsThisMonth: number;
@@ -105,11 +105,14 @@ export function PTOProvider({ children }: { children: ReactNode }) {
     setCanRequestPTO(hoursUsedThisMonth < 16); // 16 hours per month limit
   };
 
-  const fetchRequests = async (page: number = 1) => {
+  const fetchRequests = async (searchQuery?: string) => {
     setIsLoading(true);
     try {
       const endpoint = user?.role === 'admin' ? `${API_URL}/all` : `${API_URL}/user`;
-      const response = await axiosInstance.get(endpoint);
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      
+      const response = await axiosInstance.get(`${endpoint}?${params.toString()}`);
       const fetchedRequests = Array.isArray(response.data) ? response.data : [];
       
       setRequests(fetchedRequests);
