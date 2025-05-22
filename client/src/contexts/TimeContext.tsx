@@ -33,16 +33,31 @@ interface TimeStats {
   totalHoursThisWeek: number;
 }
 
+interface TimeFilters {
+  month?: number;
+  year?: number;
+  status?: 'all' | 'active' | 'completed';
+  page?: number;
+  limit?: number;
+}
+
+interface PaginationData {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+}
+
 interface TimeContextType {
   entries: TimeEntry[];
   isLoading: boolean;
   isClockedIn: boolean;
   currentEntry: TimeEntry | null;
+  pagination: PaginationData;
   clockIn: () => Promise<void>;
   clockOut: () => Promise<void>;
   totalHoursToday: number;
   totalHoursThisWeek: number;
-  fetchEntries: () => Promise<void>;
+  fetchEntries: (filters?: TimeFilters) => Promise<void>;
 }
 
 const TimeContext = createContext<TimeContextType | undefined>(undefined);
@@ -54,6 +69,11 @@ export function TimeProvider({ children }: { children: ReactNode }) {
   const [currentEntry, setCurrentEntry] = useState<TimeEntry | null>(null);
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [timeStats, setTimeStats] = useState<TimeStats>({ totalHoursToday: 0, totalHoursThisWeek: 0 });
+  const [pagination, setPagination] = useState<PaginationData>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0
+  });
 
   // Load initial data
   useEffect(() => {
@@ -120,26 +140,43 @@ export function TimeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchEntries = async () => {
+  const fetchEntries = async (filters?: TimeFilters) => {
     if (!user) return;
     
     try {
       console.log('Fetching time entries...');
       setIsLoading(true);
       
-      const response = await api.get('/time/entries');
+      const queryParams = new URLSearchParams();
+      if (filters?.month !== undefined) queryParams.append('month', filters.month.toString());
+      if (filters?.year !== undefined) queryParams.append('year', filters.year.toString());
+      if (filters?.status) queryParams.append('status', filters.status);
+      if (filters?.page) queryParams.append('page', filters.page.toString());
+      if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+      
+      const response = await api.get(`/time/entries?${queryParams.toString()}`);
       console.log('Entries fetched:', {
-        count: response.data.entries?.length || 0
+        count: response.data.entries?.length || 0,
+        pagination: response.data.pagination
       });
       
       setEntries(response.data.entries || []);
+      setPagination(response.data.pagination || {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: response.data.entries?.length || 0
+      });
       
       // Also update stats when fetching entries
       await fetchTimeStats();
     } catch (error) {
       console.error('Error fetching time entries:', error);
-      toast.error('Failed to load time entries');
       setEntries([]);
+      setPagination({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0
+      });
     } finally {
       setIsLoading(false);
     }
@@ -215,7 +252,8 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       clockOut,
       totalHoursToday: timeStats.totalHoursToday,
       totalHoursThisWeek: timeStats.totalHoursThisWeek,
-      fetchEntries
+      fetchEntries,
+      pagination
     }}>
       {children}
     </TimeContext.Provider>
