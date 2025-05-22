@@ -3,6 +3,7 @@ import { Clock, Calendar, Check } from 'lucide-react';
 import { ClockButton } from '@/components/time/ClockButton';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { PTOForm } from '@/components/pto/PTOForm';
+import { PTOStatus } from '@/components/pto/PTOStatus';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTime } from '@/contexts/TimeContext';
@@ -137,22 +138,7 @@ const DashboardPage: React.FC = () => {
       </Card>
       
       {/* PTO Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>PTO Status</CardTitle>
-          <CardDescription>Your paid time off requests and availability</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-6">
-            <div className="text-center">
-              <div className="text-5xl font-bold">
-                {userPTOsThisMonth} <span className="text-muted-foreground">/ {userPTOLimit}</span>
-              </div>
-              <p className="mt-2 text-muted-foreground">Approved PTO requests this month</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <PTOStatus />
       
       {/* PTO Form */}
       <PTOForm />
