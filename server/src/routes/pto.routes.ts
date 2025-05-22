@@ -1,6 +1,6 @@
 import express, { Router, Request, Response } from 'express';
 import { body } from 'express-validator';
-import { createRequest, getUserRequests, getAllRequests, updateRequestStatus } from '../controllers/pto.controller.js';
+import { createRequest, getUserRequests, getAllRequests, updateRequestStatus, getMonthlyRequestCount, getYearlyPTOHours } from '../controllers/pto.controller.js';
 import { auth, isAdmin } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validate.js';
 
@@ -11,8 +11,8 @@ router.use(auth);
 
 // Validation middleware
 const ptoRequestValidation = [
-  body('startDate').isISO8601().withMessage('Invalid start date'),
-  body('endDate').isISO8601().withMessage('Invalid end date'),
+  body('date').isISO8601().withMessage('Invalid date'),
+  body('hours').isInt({ min: 1, max: 8 }).withMessage('Hours must be between 1 and 8'),
   body('reason').trim().notEmpty().withMessage('Reason is required')
 ];
 
@@ -22,6 +22,16 @@ router.get('/user', getUserRequests);
 router.get('/all', isAdmin, getAllRequests);
 router.patch('/request/:requestId', isAdmin, (req: Request, res: Response) => {
   return updateRequestStatus(req as any, res);
+});
+
+// Get monthly PTO request count
+router.get('/user/month/:year/:month', auth, (req: Request, res: Response) => {
+  return getMonthlyRequestCount(req, res);
+});
+
+// Get yearly PTO hours
+router.get('/user/year/:year', auth, (req: Request, res: Response) => {
+  return getYearlyPTOHours(req, res);
 });
 
 export default router; 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -10,24 +9,31 @@ import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { usePTO } from '@/contexts/PTOContext';
 import { toast } from '@/components/ui/sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface PTOFormProps {
   onRequestSubmitted?: () => void;
 }
 
 export const PTOForm: React.FC<PTOFormProps> = ({ onRequestSubmitted }) => {
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [hours, setHours] = useState<number>(8);
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { createRequest, canRequestPTO, userPTOsThisMonth, userPTOLimit } = usePTO();
+  const { createRequest, canRequestPTO, userPTOsThisMonth } = usePTO();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!startDate || !endDate) {
-      toast.error('Please select start and end dates');
+    if (!date) {
+      toast.error('Please select a date');
       return;
     }
     
@@ -38,11 +44,11 @@ export const PTOForm: React.FC<PTOFormProps> = ({ onRequestSubmitted }) => {
     
     try {
       setIsSubmitting(true);
-      await createRequest(startDate, endDate, reason);
+      await createRequest(date, hours, reason);
       
       // Reset form
-      setStartDate(undefined);
-      setEndDate(undefined);
+      setDate(undefined);
+      setHours(8);
       setReason('');
       
       if (onRequestSubmitted) {
@@ -60,67 +66,53 @@ export const PTOForm: React.FC<PTOFormProps> = ({ onRequestSubmitted }) => {
       <CardHeader>
         <CardTitle>Request Time Off</CardTitle>
         <CardDescription>
-          Submit your PTO request for approval 
-          ({userPTOsThisMonth} of {userPTOLimit} requests used this month)
+          Submit your PTO request for approval. You have 16 hours of PTO available per month.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="block text-sm font-medium">Start Date</label>
+              <label className="block text-sm font-medium">Date</label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
+                      !date && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "PPP") : "Select date"}
+                    {date ? format(date, "PPP") : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
+                    selected={date}
+                    onSelect={setDate}
                     initialFocus
-                    disabled={(date) => date < new Date() || (endDate ? date > endDate : false)}
+                    disabled={(date) => date < new Date()}
                   />
                 </PopoverContent>
               </Popover>
             </div>
             
             <div className="space-y-2">
-              <label className="block text-sm font-medium">End Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "PPP") : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    initialFocus
-                    disabled={(date) => 
-                      date < new Date() || (startDate ? date < startDate : false)
-                    }
-                  />
-                </PopoverContent>
-              </Popover>
+              <label className="block text-sm font-medium">Hours</label>
+              <Select value={hours.toString()} onValueChange={(value) => setHours(parseInt(value))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select hours" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((h) => (
+                    <SelectItem key={h} value={h.toString()}>
+                      {h} hour{h > 1 ? 's' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           

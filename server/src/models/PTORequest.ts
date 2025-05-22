@@ -15,13 +15,15 @@ const ptoRequestSchema = new Schema<IPTORequest>({
     type: String,
     required: true
   },
-  startDate: {
+  date: {
     type: Date,
     required: true
   },
-  endDate: {
-    type: Date,
-    required: true
+  hours: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 8
   },
   reason: {
     type: String,
@@ -40,14 +42,18 @@ const ptoRequestSchema = new Schema<IPTORequest>({
   approvalDate: {
     type: Date,
     default: null
+  },
+  expiryYear: {
+    type: Number,
+    required: true
   }
 }, {
   timestamps: true
 });
 
-// Calculate total days when saving
-ptoRequestSchema.virtual('totalDays').get(function(): number {
-  return Math.ceil((this.endDate.getTime() - this.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+// Virtual field to get the month of the request
+ptoRequestSchema.virtual('month').get(function(): number {
+  return this.date.getMonth();
 });
 
 // Ensure virtuals are included in JSON
