@@ -4,13 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { Clock, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   // If already authenticated, redirect to dashboard
   React.useEffect(() => {
@@ -66,16 +66,27 @@ const LoginPage = () => {
                 className="focus:ring-2 focus:ring-primary"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <Input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 required
                 disabled={isSubmitting}
                 className="focus:ring-2 focus:ring-primary"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-[90%] pt-0.5 text-gray-500 hover:text-gray-700 focus:outline-none"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
             </div>
             <Button
               type="submit"
