@@ -181,7 +181,7 @@ export const TimeHistoryTable: React.FC = () => {
                   <TimeEntryRow key={entry.id} entry={entry} />
                 ))
               ) : (
-                <TableRow>
+                <TableRow key="no-entries">
                   <TableCell colSpan={4} className="text-center h-24">
                     No time entries found
                   </TableCell>
@@ -195,6 +195,7 @@ export const TimeHistoryTable: React.FC = () => {
         {pagination.totalPages > 1 && (
           <div className="flex justify-center space-x-2 mt-4">
             <Button
+              key="prev"
               variant="outline"
               size="sm"
               onClick={() => setCurrentFilters(prev => ({ ...prev, page: prev.page - 1 }))}
@@ -205,7 +206,7 @@ export const TimeHistoryTable: React.FC = () => {
             <div className="flex items-center space-x-1">
               {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
                 <Button
-                  key={page}
+                  key={`page-${page}`}
                   variant={currentFilters.page === page ? "default" : "outline"}
                   size="sm"
                   onClick={() => setCurrentFilters(prev => ({ ...prev, page }))}
@@ -215,6 +216,7 @@ export const TimeHistoryTable: React.FC = () => {
               ))}
             </div>
             <Button
+              key="next"
               variant="outline"
               size="sm"
               onClick={() => setCurrentFilters(prev => ({ ...prev, page: prev.page + 1 }))}
