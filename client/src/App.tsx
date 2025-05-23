@@ -15,6 +15,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import AccountPage from "./pages/AccountPage";
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -34,6 +35,7 @@ const AppRoutes = () => {
         <Route path="/time-history" element={<TimeHistoryPage />} />
         <Route path="/pto-requests" element={<PTORequestsPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
+        <Route path="/account" element={<AccountPage />} />
       </Route>
       <Route 
         path="/" 
