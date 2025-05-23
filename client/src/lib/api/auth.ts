@@ -1,12 +1,5 @@
 import { axiosInstance } from '../axios';
 
-export interface SignupData {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-}
-
 export interface LoginData {
   email: string;
   password: string;
@@ -15,22 +8,16 @@ export interface LoginData {
 export interface AuthResponse {
   token: string;
   user: {
-    _id: string;
+    id: string;
     email: string;
     firstName: string;
     lastName: string;
+    name: string;
     role: string;
   };
 }
 
 export const authApi = {
-  signup: async (data: SignupData): Promise<AuthResponse> => {
-    console.log('Calling signup API with data:', { ...data, password: '[REDACTED]' });
-    const response = await axiosInstance.post<AuthResponse>('/auth/register', data);
-    console.log('Signup API response:', { ...response.data, token: '[REDACTED]' });
-    return response.data;
-  },
-
   login: async (data: LoginData): Promise<AuthResponse> => {
     console.log('Calling login API with data:', { ...data, password: '[REDACTED]' });
     const response = await axiosInstance.post<AuthResponse>('/auth/login', data);
