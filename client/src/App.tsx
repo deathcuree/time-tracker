@@ -12,6 +12,7 @@ import DashboardPage from "./pages/DashboardPage";
 import TimeHistoryPage from "./pages/TimeHistoryPage";
 import PTORequestsPage from "./pages/PTORequestsPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import UserManagementPage from "./pages/UserManagementPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -35,6 +36,7 @@ const AppRoutes = () => {
         <Route path="/time-history" element={<TimeHistoryPage />} />
         <Route path="/pto-requests" element={<PTORequestsPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
+        <Route path="/admin/users" element={<UserManagementPage />} />
         <Route path="/account" element={<AccountPage />} />
       </Route>
       <Route 
