@@ -45,7 +45,6 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   updateProfile: (data: { firstName: string; lastName: string }) => Promise<void>;
@@ -105,7 +104,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Create a provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Check if user is already logged in on mount
   useEffect(() => {
@@ -174,45 +173,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       throw error; // Re-throw the error but without logging
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Signup function
-  const signup = async (name: string, email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // Split name into first and last name
-      const [firstName, ...lastNameParts] = name.trim().split(' ');
-      const lastName = lastNameParts.join(' ') || firstName;
-
-      const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', {
-        email,
-        password,
-        firstName,
-        lastName
-      });
-      
-      if (!response.data.success) {
-        throw new Error('Registration failed');
-      }
-
-      const { token, user: userData } = response.data.data;
-      
-      // Store the token
-      localStorage.setItem('token', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      // Set user data
-      const newUser = normalizeUserData(response.data);
-      
-      setUser(newUser);
-      toast.success('Account created successfully!');
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Signup failed';
-      toast.error(`Signup failed: ${message}`);
-      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -288,7 +248,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoading,
       login,
-      signup,
       logout,
       isAuthenticated: !!user,
       updateProfile,

@@ -15,7 +15,6 @@ import PTORequestsPage from "./pages/PTORequestsPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import AccountPage from "./pages/AccountPage";
 
@@ -27,10 +26,6 @@ const AppRoutes = () => {
       <Route 
         path="/login" 
         element={isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} 
-      />
-      <Route 
-        path="/signup" 
-        element={isAuthenticated ? <Navigate to="/dashboard" /> : <SignupPage />} 
       />
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
