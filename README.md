@@ -1,9 +1,6 @@
-
-
-
 # SHE-TIME-TRACKER
 
-*Empower Your Time, Elevate Your Productivity*
+*Empower Your Time, Elevate Your Productivity* ⚡
 
 ![Last Commit](https://img.shields.io/badge/last%20commit-today-brightgreen)
 ![TypeScript](https://img.shields.io/badge/typescript-97.8%25-blue)
@@ -11,69 +8,137 @@
 
 ---
 
-**Built with the tools and technologies:**
+## 🚀 Tech Stack
 
-![JSON](https://img.shields.io/badge/-JSON-black)
-![npm](https://img.shields.io/badge/-npm-red)
-![Autoprefixer](https://img.shields.io/badge/-Autoprefixer-ff5c5c)
-![PostCSS](https://img.shields.io/badge/-PostCSS-fec601)
-![ENV](https://img.shields.io/badge/-.ENV-yellowgreen)
-![JavaScript](https://img.shields.io/badge/-JavaScript-f7df1e)
-![MongoDB](https://img.shields.io/badge/-MongoDB-4db33d)
-![React](https://img.shields.io/badge/-React-61dafb)
-![TypeScript](https://img.shields.io/badge/-TypeScript-007acc)
-![Zod](https://img.shields.io/badge/-Zod-blueviolet)
-![Vite](https://img.shields.io/badge/-Vite-646cff)
-![ESLint](https://img.shields.io/badge/-ESLint-4B32C3)
-![date-fns](https://img.shields.io/badge/-datefns-purple)
-![React Hook Form](https://img.shields.io/badge/-React%20Hook%20Form-ff69b4)
+### Frontend
+- 🎨 **UI Framework**: React 18 with TypeScript
+- 🎯 **State Management**: React Query (TanStack Query)
+- 🎭 **Form Handling**: React Hook Form with Zod validation
+- 💅 **Styling**: 
+  - Tailwind CSS with Animations
+  - Radix UI Components
+  - Shadcn UI
+- 📦 **Build Tool**: Vite
+- 📊 **Charts**: Recharts
+- 🔄 **Routing**: React Router DOM
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [Testing](#testing)
+### Backend
+- 🛠️ **Runtime**: Node.js with TypeScript
+- 🌐 **Framework**: Express.js
+- 🗄️ **Database**: MongoDB with Mongoose
+- 🔐 **Authentication**: JWT with bcrypt
+- ✅ **Validation**: Express Validator & Zod
+- 🔄 **API**: RESTful with CORS support
 
 ---
 
-## Overview
+## 🌟 Features
 
-**she-time-tracker** is a robust developer tool designed to simplify time management and Paid Time Off (PTO) tracking for teams and individuals.
+- 🕒 **Time Tracking**
+  - Real-time clock in/out system
+  - Detailed time logs
+  - Activity monitoring
 
-### Why she-time-tracker?
+- 📅 **PTO Management**
+  - Leave request submission
+  - Approval workflow
+  - Calendar integration
 
-This project aims to enhance productivity by providing a seamless experience for managing work hours and time-off requests. The core features include:
+- 👥 **User Management**
+  - Role-based access control
+  - Team management
+  - User profiles
 
-- ⏰ **Time Tracking**: Effortlessly clock in and out to manage your work hours.
-- 🗓️ **PTO Management**: Submit and track Paid Time Off requests with ease.
-- 📱 **Responsive Design**: Enjoy a consistent experience across all devices.
-- 🛠️ **Component Library**: Utilize reusable UI components to speed up development.
-- ⚡ **Real-time Updates**: Receive instant feedback on your actions for improved user experience.
+- 📊 **Analytics & Reporting**
+  - Time utilization reports
+  - Team performance metrics
+  - Custom report generation
+
+- 🎨 **Modern UI/UX**
+  - Responsive design
+  - Dark/Light theme
+  - Intuitive navigation
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-This project requires the following dependencies:
-
-- **Programming Language**: TypeScript  
-- **Package Manager**: Npm
-
----
+- Node.js 18+ 
+- MongoDB
+- npm or yarn
 
 ### Installation
 
-Build she-time-tracker from the source and install dependencies:
-
-1. **Clone the repository:**
-
+1. **Clone the repository**
    ```bash
    git clone https://github.com/deathcuree/she-time-tracker
+   cd she-time-tracker
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm run install:all
+   ```
+
+3. **Environment Setup**
+   - Create `.env` files in both client and server directories
+   - Configure necessary environment variables
+
+4. **Start Development Servers**
+   ```bash
+   npm run dev
+   ```
+   This will start both frontend and backend servers concurrently.
+
+   - Frontend: http://localhost:5173
+   - Backend: http://localhost:3000
+
+---
+
+## 🛠️ Development
+
+### Scripts
+
+- `npm run dev` - Start development servers
+- `npm run client` - Start frontend only
+- `npm run server` - Start backend only
+- `npm run build` - Build for production
+
+### Project Structure
+
+```
+she-time-tracker/
+├── client/               # Frontend application
+│   ├── src/             # Source files
+│   ├── public/          # Static files
+│   └── vite.config.ts   # Vite configuration
+├── server/              # Backend application
+│   ├── src/             # Source files
+│   └── tsconfig.json    # TypeScript configuration
+└── package.json         # Root package.json
+```
+
+---
+
+## 📝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+## 🤝 Support
+
+For support, email connect@shevirtualassistance.com
 
