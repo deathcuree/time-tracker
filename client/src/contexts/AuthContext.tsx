@@ -48,6 +48,9 @@ interface AuthContextType {
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  updateProfile: (data: { firstName: string; lastName: string }) => Promise<void>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  validateCurrentPassword: (password: string) => Promise<boolean>;
 }
 
 // Helper function to normalize user data
@@ -223,6 +226,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     toast.success('Logged out successfully');
   };
 
+  // Update profile function
+  const updateProfile = async (data: { firstName: string; lastName: string }) => {
+    setIsLoading(true);
+    try {
+      const response = await api.put<ApiResponse<ServerUserData>>('/auth/profile', data);
+      
+      if (!response.data.success) {
+        throw new Error('Failed to update profile');
+      }
+
+      const updatedUser = normalizeUserData(response.data);
+      setUser(updatedUser);
+      toast.success('Profile updated successfully');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to update profile';
+      toast.error(message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update password function
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    setIsLoading(true);
+    try {
+      const response = await api.put<ApiResponse<{ message: string }>>('/auth/password', {
+        currentPassword,
+        newPassword
+      });
+      
+      if (!response.data.success) {
+        throw new Error('Failed to update password');
+      }
+
+      toast.success('Password updated successfully');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to update password';
+      toast.error(message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Validate current password
+  const validateCurrentPassword = async (password: string): Promise<boolean> => {
+    try {
+      const response = await api.post<ApiResponse<{ message: string }>>('/auth/validate-password', {
+        password
+      });
+      return response.data.success;
+    } catch (error) {
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -230,7 +290,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       signup,
       logout,
-      isAuthenticated: !!user
+      isAuthenticated: !!user,
+      updateProfile,
+      updatePassword,
+      validateCurrentPassword
     }}>
       {children}
     </AuthContext.Provider>

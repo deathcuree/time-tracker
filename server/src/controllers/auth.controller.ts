@@ -193,4 +193,129 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
       error: (error as Error).message 
     });
   }
+};
+
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { firstName, lastName } = req.body;
+    
+    // Validate input
+    if (!firstName || !lastName) {
+      res.status(400).json({
+        success: false,
+        message: 'First name and last name are required'
+      });
+      return;
+    }
+
+    // Update user
+    const user = await User.findByIdAndUpdate(
+      req.user!._id,
+      { firstName, lastName },
+      { new: true }
+    ).select('-password') as IUser | null;
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating profile',
+      error: (error as Error).message
+    });
+  }
+};
+
+export const updatePassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    // Validate input
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+      return;
+    }
+
+    // Find user with password
+    const user = await User.findById(req.user!._id) as IUser;
+    
+    // Verify current password
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+      return;
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save(); // This will trigger the pre-save hook to hash the password
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+  } catch (error) {
+    console.error('Password update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating password',
+      error: (error as Error).message
+    });
+  }
+};
+
+export const validateCurrentPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      res.status(400).json({
+        success: false,
+        message: 'Password is required'
+      });
+      return;
+    }
+
+    // Find user with password
+    const user = await User.findById(req.user!._id) as IUser;
+    
+    // Verify password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Password is valid'
+    });
+  } catch (error) {
+    console.error('Password validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while validating password',
+      error: (error as Error).message
+    });
+  }
 }; 
