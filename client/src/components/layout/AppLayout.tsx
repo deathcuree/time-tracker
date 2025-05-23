@@ -64,6 +64,7 @@ export const AppLayout = () => {
     { title: 'Dashboard', path: '/dashboard', icon: Clock },
     { title: 'Time History', path: '/time-history', icon: Calendar },
     { title: 'PTO Requests', path: '/pto-requests', icon: User },
+    { title: 'Account', path: '/account', icon: Settings },
   ];
   
   const adminMenuItems: MenuItem[] = [
