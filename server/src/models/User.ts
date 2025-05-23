@@ -29,6 +29,11 @@ const userSchema = new Schema<IUser>({
     type: String,
     enum: ['user', 'admin'],
     default: 'user' // Changed from 'admin' to 'user'
+  },
+  position: {
+    type: String,
+    required: true,
+    trim: true
   }
 }, {
   timestamps: true

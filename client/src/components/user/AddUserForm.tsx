@@ -1,7 +1,7 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { CreateUserData, createUserSchema } from '@/lib/api/users';
 import {
   Form,
   FormControl,
@@ -19,33 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-const userFormSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  firstName: z.string().min(2, 'First name must be at least 2 characters'),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  role: z.enum(['user', 'admin']),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
-
-type UserFormData = z.infer<typeof userFormSchema>;
+import { Loader2 } from "lucide-react";
 
 interface AddUserFormProps {
-  onSubmit: (data: UserFormData) => void;
+  onSubmit: (data: CreateUserData) => void;
   isLoading?: boolean;
+  form?: UseFormReturn<CreateUserData>;
 }
 
 export const AddUserForm: React.FC<AddUserFormProps> = ({
   onSubmit,
   isLoading = false,
+  form: externalForm,
 }) => {
-  const form = useForm<UserFormData>({
-    resolver: zodResolver(userFormSchema),
+  const form = externalForm || useForm<CreateUserData>({
+    resolver: zodResolver(createUserSchema),
     defaultValues: {
       email: '',
       firstName: '',
       lastName: '',
       role: 'user',
+      position: '',
       password: '',
     },
   });
@@ -60,7 +54,12 @@ export const AddUserForm: React.FC<AddUserFormProps> = ({
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="email@example.com" {...field} />
+                <Input 
+                  placeholder="email@example.com" 
+                  {...field} 
+                  disabled={isLoading}
+                  aria-invalid={!!form.formState.errors.email}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -75,7 +74,12 @@ export const AddUserForm: React.FC<AddUserFormProps> = ({
               <FormItem>
                 <FormLabel>First Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="John" {...field} />
+                  <Input 
+                    placeholder="John" 
+                    {...field} 
+                    disabled={isLoading}
+                    aria-invalid={!!form.formState.errors.firstName}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -89,7 +93,12 @@ export const AddUserForm: React.FC<AddUserFormProps> = ({
               <FormItem>
                 <FormLabel>Last Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Doe" {...field} />
+                  <Input 
+                    placeholder="Doe" 
+                    {...field} 
+                    disabled={isLoading}
+                    aria-invalid={!!form.formState.errors.lastName}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -103,7 +112,11 @@ export const AddUserForm: React.FC<AddUserFormProps> = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                disabled={isLoading}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
@@ -121,12 +134,36 @@ export const AddUserForm: React.FC<AddUserFormProps> = ({
 
         <FormField
           control={form.control}
+          name="position"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Position</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Software Engineer" 
+                  {...field} 
+                  disabled={isLoading}
+                  aria-invalid={!!form.formState.errors.position}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="password"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" {...field} />
+                <Input 
+                  type="password" 
+                  {...field} 
+                  disabled={isLoading}
+                  aria-invalid={!!form.formState.errors.password}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -134,7 +171,14 @@ export const AddUserForm: React.FC<AddUserFormProps> = ({
         />
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create User'}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            'Create User'
+          )}
         </Button>
       </form>
     </Form>

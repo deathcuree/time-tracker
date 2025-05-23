@@ -1,10 +1,11 @@
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { TimeProvider } from "./contexts/TimeContext";
 import { PTOProvider } from "./contexts/PTOContext";
 import { AppLayout } from "./components/layout/AppLayout";
+import { AdminRoute } from "./components/auth/AdminRoute";
 import './App.css';
 
 // Pages
@@ -35,9 +36,13 @@ const AppRoutes = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/time-history" element={<TimeHistoryPage />} />
         <Route path="/pto-requests" element={<PTORequestsPage />} />
-        <Route path="/admin" element={<AdminDashboardPage />} />
-        <Route path="/admin/users" element={<UserManagementPage />} />
         <Route path="/account" element={<AccountPage />} />
+        
+        {/* Admin Routes */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/admin/users" element={<UserManagementPage />} />
+        </Route>
       </Route>
       <Route 
         path="/" 
@@ -54,7 +59,7 @@ const App = () => {
       <TimeProvider>
         <PTOProvider>
           <TooltipProvider>
-            <Sonner 
+            <Toaster 
               position="top-right"
               expand={true}
               richColors={true}

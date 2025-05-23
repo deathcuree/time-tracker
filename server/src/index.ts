@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.routes.js';
 import timeRoutes from './routes/time.routes.js';
 import ptoRoutes from './routes/pto.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 const app: Express = express();
 
@@ -18,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/pto', ptoRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/users', userRoutes);
 
 // MongoDB Connection
 const connectDB = async () => {
