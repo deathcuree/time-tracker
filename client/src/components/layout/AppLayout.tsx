@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { NavLink, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
-import { Clock, Calendar, User, LogOut, Settings, Sun, Moon } from 'lucide-react';
+import { Clock, Calendar, User, LogOut, Settings, Sun, Moon, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
@@ -69,6 +69,7 @@ export const AppLayout = () => {
   
   const adminMenuItems: MenuItem[] = [
     { title: 'Admin Dashboard', path: '/admin', icon: Settings },
+    { title: 'User Management', path: '/admin/users', icon: Users },
   ];
   
   const menuItems = user?.role === 'admin' 
