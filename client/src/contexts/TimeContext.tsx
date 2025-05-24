@@ -3,7 +3,7 @@ import { toast } from '@/components/ui/sonner';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.API_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -28,7 +28,7 @@ const userSchema = new Schema<IUser>({
   role: {
     type: String,
     enum: ['user', 'admin'],
-    default: 'user' // Changed from 'admin' to 'user'
+    default: 'user'
   },
   position: {
     type: String,

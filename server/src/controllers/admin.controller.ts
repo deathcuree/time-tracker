@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import User from '../models/User.js';
 import TimeEntry from '../models/TimeEntry.js';
-import PTORequest from '../models/PTORequest.js';
 import { IUser, ITimeEntry } from '../types/models.js';
 import mongoose from 'mongoose';
 
