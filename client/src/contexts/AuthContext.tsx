@@ -1,131 +1,35 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, ReactNode, useEffect, useContext } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { axiosInstance } from '@/lib/axios';
+import type { AuthContextType, ApiResponse, ServerUserData, AuthResponse } from '@/types/auth';
+import { normalizeUserData, handleAuthError, setAuthToken } from '@/utils/auth';
 
-// Define types
-export type UserRole = 'user' | 'admin';
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Define possible server response types
-interface BaseUserData {
-  email: string;
-  role: string;
-}
-
-interface LegacyUserData extends BaseUserData {
-  _id: string;
-  firstName: string;
-  lastName: string;
-}
-
-interface ModernUserData extends BaseUserData {
-  id: string;
-  name: string;
-}
-
-type ServerUserData = LegacyUserData | ModernUserData;
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-}
-
-interface AuthResponse {
-  token: string;
-  user: ServerUserData;
-}
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-}
-
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
-  updateProfile: (data: { firstName: string; lastName: string }) => Promise<void>;
-  updatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  validateCurrentPassword: (password: string) => Promise<boolean>;
-}
-
-// Helper function to normalize user data
-const normalizeUserData = (response: ApiResponse<ServerUserData | AuthResponse>): User => {
-  console.log('Normalizing user data:', response);
-  
-  // Handle nested data structure
-  const responseData = response.data;
-  const userData: ServerUserData = 'user' in responseData 
-    ? responseData.user 
-    : responseData as ServerUserData;
-  
-  console.log('Raw user data:', userData);
-  
-  const id = 'id' in userData ? userData.id : userData._id;
-  let name;
-  
-  if ('name' in userData && userData.name) {
-    name = userData.name;
-    console.log('Using modern name field:', name);
-  } else if ('firstName' in userData && 'lastName' in userData) {
-    name = `${userData.firstName} ${userData.lastName}`.trim();
-    console.log('Using legacy name fields:', name);
-  } else {
-    name = 'Unknown User';
-    console.warn('User data missing name fields:', userData);
-  }
-  
-  const normalizedUser = {
-    id,
-    name,
-    email: userData.email,
-    role: (userData.role || 'user') as UserRole
-  };
-  
-  console.log('Normalized user data:', normalizedUser);
-  return normalizedUser;
-};
-
-// Remove the API configuration section and use axiosInstance instead
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Create a provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthContextType['user']>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if user is already logged in on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
         
         if (token) {
-          console.log('Found token, checking profile...');
-          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          const authHeader = setAuthToken(token);
+          axiosInstance.defaults.headers.common['Authorization'] = authHeader;
           const response = await axiosInstance.get<ApiResponse<ServerUserData>>('/auth/profile');
-          console.log('Profile response:', response.data);
           
           if (!response.data.success) {
             throw new Error('Failed to fetch profile');
           }
           
-          const normalizedUser = normalizeUserData(response.data);
-          console.log('Setting user state:', normalizedUser);
-          setUser(normalizedUser);
+          setUser(normalizeUserData(response.data));
         }
       } catch (error: any) {
-        console.error('Authentication error:', error);
-        // Only remove token on specific auth errors
-        if (error.response?.status === 401 && 
-            (error.response?.data?.message === 'Invalid token' || 
-             error.response?.data?.message === 'Authentication required' ||
-             error.response?.data?.message === 'User not found')) {
-          console.log('Authentication error, removing token');
-          localStorage.removeItem('token');
+        if (error.response?.status === 401) {
+          setAuthToken(null);
+          delete axiosInstance.defaults.headers.common['Authorization'];
         }
       } finally {
         setIsLoading(false);
@@ -135,13 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  // Login function
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      console.log('Making login request...');
       const response = await axiosInstance.post<ApiResponse<AuthResponse>>('/auth/login', { email, password });
-      console.log('Login response:', response.data);
       
       if (!response.data.success) {
         throw new Error('Login request failed');
@@ -153,38 +54,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('No user data received from server');
       }
       
-      // Store the token
-      localStorage.setItem('token', token);
-      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const authHeader = setAuthToken(token);
+      axiosInstance.defaults.headers.common['Authorization'] = authHeader;
       
-      // Set user data
-      const authenticatedUser = normalizeUserData(response.data);
-      setUser(authenticatedUser);
+      setUser(normalizeUserData(response.data));
       toast.success('Successfully logged in!');
     } catch (error: any) {
-      // Get the specific error message from the response if available
-      const responseErrors = error.response?.data?.errors;
-      const errorMessage = responseErrors?.email || responseErrors?.password || error.response?.data?.message;
-      
-      if (errorMessage) {
-        toast.error(errorMessage);
-      }
-      
-      throw error; // Re-throw the error but without logging
+      toast.error(handleAuthError(error));
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Logout function
   const logout = () => {
-    localStorage.removeItem('token');
+    setAuthToken(null);
     delete axiosInstance.defaults.headers.common['Authorization'];
     setUser(null);
     toast.success('Logged out successfully');
   };
 
-  // Update profile function
   const updateProfile = async (data: { firstName: string; lastName: string }) => {
     setIsLoading(true);
     try {
@@ -194,19 +83,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Failed to update profile');
       }
 
-      const updatedUser = normalizeUserData(response.data);
-      setUser(updatedUser);
+      setUser(normalizeUserData(response.data));
       toast.success('Profile updated successfully');
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to update profile';
-      toast.error(message);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Update password function
   const updatePassword = async (currentPassword: string, newPassword: string) => {
     setIsLoading(true);
     try {
@@ -221,15 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       toast.success('Password updated successfully');
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to update password';
-      toast.error(message);
+      toast.error(error.response?.data?.message || 'Failed to update password');
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Validate current password
   const validateCurrentPassword = async (password: string): Promise<boolean> => {
     try {
       const response = await axiosInstance.post<ApiResponse<{ message: string }>>('/auth/validate-password', {
