@@ -24,18 +24,13 @@ app.use('/api/users', userRoutes);
 // MongoDB Connection
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/TimeTrackerDB';
+    const mongoURI = process.env.MONGODB_URI;
     console.log('Attempting to connect to MongoDB...');
     
     // Clear any existing connection
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
-
-    await mongoose.connect(mongoURI, {
-      dbName: 'TimeTrackerDB',
-      autoCreate: true // Automatically create the database if it doesn't exist
-    });
 
     // Verify we're connected to the correct database
     const dbName = mongoose.connection?.db?.databaseName;
@@ -61,7 +56,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 // Function to create initial admin user
 async function createInitialAdmin() {

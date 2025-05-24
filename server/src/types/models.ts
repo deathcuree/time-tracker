@@ -4,7 +4,7 @@ export interface IUser extends Document {
   _id: Types.ObjectId;
   firstName: string;
   lastName: string;
-  name: string; // Virtual field
+  name: string;
   email: string;
   password: string;
   role: 'user' | 'admin';
@@ -61,7 +61,6 @@ export interface IPTORequestBody {
   reason: string;
 }
 
-// Custom request type with user
 declare global {
   namespace Express {
     interface Request {
