@@ -1,24 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from './AuthContext';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import { axiosInstance } from '@/lib/axios';
 
 export interface TimeEntry {
   id: string;
@@ -119,7 +102,7 @@ export function TimeProvider({ children }: { children: ReactNode }) {
   const fetchTimeStats = async () => {
     try {
       console.log('Fetching time stats from server...');
-      const response = await api.get('/time/stats');
+      const response = await axiosInstance.get('/time/stats');
       console.log('Time stats received:', response.data);
       setTimeStats(response.data);
     } catch (error) {
@@ -129,7 +112,7 @@ export function TimeProvider({ children }: { children: ReactNode }) {
 
   const checkCurrentStatus = async () => {
     try {
-      const response = await api.get('/time/status');
+      const response = await axiosInstance.get('/time/status');
       const { isClockedIn: serverClockStatus, activeEntry } = response.data;
       
       setIsClockedIn(serverClockStatus);
@@ -154,7 +137,7 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       if (filters?.page) queryParams.append('page', filters.page.toString());
       if (filters?.limit) queryParams.append('limit', filters.limit.toString());
       
-      const response = await api.get(`/time/entries?${queryParams.toString()}`);
+      const response = await axiosInstance.get(`/time/entries?${queryParams.toString()}`);
       console.log('Entries fetched:', {
         count: response.data.entries?.length || 0,
         pagination: response.data.pagination
@@ -190,7 +173,7 @@ export function TimeProvider({ children }: { children: ReactNode }) {
     
     try {
       console.log('Attempting to clock in...');
-      const response = await api.post('/time/clock-in');
+      const response = await axiosInstance.post('/time/clock-in');
       const newEntry = response.data;
       
       console.log('Clock in successful:', {
@@ -219,7 +202,7 @@ export function TimeProvider({ children }: { children: ReactNode }) {
     
     try {
       console.log('Attempting to clock out...');
-      const response = await api.post('/time/clock-out');
+      const response = await axiosInstance.post('/time/clock-out');
       const updatedEntry = response.data;
       
       console.log('Clock out successful:', {

@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { toast } from '@/components/ui/sonner';
-import axios from 'axios';
+import { axiosInstance } from '@/lib/axios';
 
 // Define types
 export type UserRole = 'user' | 'admin';
@@ -89,15 +89,6 @@ const normalizeUserData = (response: ApiResponse<ServerUserData | AuthResponse>)
   return normalizedUser;
 };
 
-// API configuration
-const API_URL = 'http://localhost:5000/api';
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
 // Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -114,8 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (token) {
           console.log('Found token, checking profile...');
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          const response = await api.get<ApiResponse<ServerUserData>>('/auth/profile');
+          const response = await axiosInstance.get<ApiResponse<ServerUserData>>('/auth/profile');
           console.log('Profile response:', response.data);
           
           if (!response.data.success) {
@@ -142,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       console.log('Making login request...');
-      const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', { email, password });
+      const response = await axiosInstance.post<ApiResponse<AuthResponse>>('/auth/login', { email, password });
       console.log('Login response:', response.data);
       
       if (!response.data.success) {
@@ -157,7 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Store the token
       localStorage.setItem('token', token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       // Set user data
       const authenticatedUser = normalizeUserData(response.data);
@@ -181,7 +170,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout function
   const logout = () => {
     localStorage.removeItem('token');
-    delete api.defaults.headers.common['Authorization'];
     setUser(null);
     toast.success('Logged out successfully');
   };
@@ -190,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (data: { firstName: string; lastName: string }) => {
     setIsLoading(true);
     try {
-      const response = await api.put<ApiResponse<ServerUserData>>('/auth/profile', data);
+      const response = await axiosInstance.put<ApiResponse<ServerUserData>>('/auth/profile', data);
       
       if (!response.data.success) {
         throw new Error('Failed to update profile');
@@ -212,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updatePassword = async (currentPassword: string, newPassword: string) => {
     setIsLoading(true);
     try {
-      const response = await api.put<ApiResponse<{ message: string }>>('/auth/password', {
+      const response = await axiosInstance.put<ApiResponse<{ message: string }>>('/auth/password', {
         currentPassword,
         newPassword
       });
@@ -234,7 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Validate current password
   const validateCurrentPassword = async (password: string): Promise<boolean> => {
     try {
-      const response = await api.post<ApiResponse<{ message: string }>>('/auth/validate-password', {
+      const response = await axiosInstance.post<ApiResponse<{ message: string }>>('/auth/validate-password', {
         password
       });
       return response.data.success;

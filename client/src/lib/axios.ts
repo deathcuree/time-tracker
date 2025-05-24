@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const baseURL = 'http://localhost:5000/api';
+const baseURL = import.meta.env.VITE_API_URL;
+
+if (!baseURL) {
+  console.error('API URL not found in environment variables. Please check your .env file and ensure the variable is prefixed with VITE_');
+}
 
 console.log('Creating axios instance with baseURL:', baseURL);
 
