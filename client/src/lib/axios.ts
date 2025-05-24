@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.API_URL;
+const baseURL = '/api';
 
 console.log('Creating axios instance with baseURL:', baseURL);
 
@@ -48,8 +48,13 @@ axiosInstance.interceptors.response.use(
       status: error.response?.status,
       data: error.response?.data
     });
-    if (error.response?.status === 401) {
-      console.log('Unauthorized access, removing token and redirecting to login');
+    
+    // Only logout on specific auth errors
+    if (error.response?.status === 401 && 
+        (error.response?.data?.message === 'Invalid token' || 
+         error.response?.data?.message === 'Authentication required' ||
+         error.response?.data?.message === 'User not found')) {
+      console.log('Authentication error, logging out');
       localStorage.removeItem('token');
       window.location.href = '/login';
     }

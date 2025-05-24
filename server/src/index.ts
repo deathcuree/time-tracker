@@ -32,8 +32,15 @@ const connectDB = async () => {
       await mongoose.disconnect();
     }
 
-    // Verify we're connected to the correct database
-    const dbName = mongoose.connection?.db?.databaseName;
+    // Connect to MongoDB
+    await mongoose.connect(mongoURI as string);
+
+    // Now verify we're connected to the correct database
+    if (!mongoose.connection.db) {
+      throw new Error('Failed to establish database connection');
+    }
+    
+    const dbName = mongoose.connection.db.databaseName;
     console.log(`Connected to database: ${dbName}`);
 
     if (dbName !== 'TimeTrackerDB') {

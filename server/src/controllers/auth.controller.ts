@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { IUser, ILoginRequest, IRegisterRequest } from '../types/models.js';
 import { validateLoginInput, validateRegistrationInput } from '../utils/validation.js';
+import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -263,9 +264,14 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Update password
-    user.password = newPassword;
-    await user.save(); // This will trigger the pre-save hook to hash the password
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password directly without triggering full model validation
+    await User.findByIdAndUpdate(req.user!._id, {
+      password: hashedPassword
+    });
 
     res.json({
       success: true,
