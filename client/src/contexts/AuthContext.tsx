@@ -127,7 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  // Login function
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
