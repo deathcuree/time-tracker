@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       console.log('Making login request...');
-      const response = await axiosInstance.post<ApiResponse<AuthResponse>>('/auth/login', { email, password });
+      const response = await axiosInstance.post<ApiResponse<AuthResponse>>(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password });
       console.log('Login response:', response.data);
       
       if (!response.data.success) {
