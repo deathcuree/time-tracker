@@ -24,7 +24,13 @@ app.use('/api/users', userRoutes);
 // MongoDB Connection
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/TimeTrackerDB';
+    const mongoURI = process.env.MONGODB_URI;
+
+    if (!mongoURI) {
+      throw new Error('MONGODB_URI environment variable is not defined');
+    }
+
+
     console.log('Attempting to connect to MongoDB...');
     
     // Clear any existing connection
