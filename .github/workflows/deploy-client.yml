@@ -22,6 +22,10 @@ jobs:
         working-directory: ./client
         run: npm install
 
+      - name: Create .env file for frontend
+        run: |
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > client/.env
+
       - name: Build frontend
         working-directory: ./client
         run: npm run build
