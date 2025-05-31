@@ -1,8 +1,8 @@
-const awsServerlessExpress = require('aws-serverless-express');
-const app = require('./dist/app').default; // or adjust based on your output
+import { createServer, proxy } from 'aws-serverless-express';
+import app from './dist/index'; // or adjust based on your output
 
-const server = awsServerlessExpress.createServer(app);
+const server = createServer(app);
 
-exports.handler = (event, context) => {
-  return awsServerlessExpress.proxy(server, event, context);
-};
+export function handler(event, context) {
+  return proxy(server, event, context);
+}
