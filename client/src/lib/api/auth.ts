@@ -19,16 +19,12 @@ export interface AuthResponse {
 
 export const authApi = {
   login: async (data: LoginData): Promise<AuthResponse> => {
-    console.log('Calling login API with data:', { ...data, password: '[REDACTED]' });
     const response = await axiosInstance.post<AuthResponse>('/auth/login', data);
-    console.log('Login API response:', { ...response.data, token: '[REDACTED]' });
     return response.data;
   },
 
   getCurrentUser: async (): Promise<AuthResponse['user']> => {
-    console.log('Fetching current user profile');
     const response = await axiosInstance.get<AuthResponse['user']>('/auth/profile');
-    console.log('Get current user response:', response.data);
     return response.data;
   },
 }; 

@@ -55,7 +55,7 @@ export const PTOForm: React.FC<PTOFormProps> = ({ onRequestSubmitted }) => {
         onRequestSubmitted();
       }
     } catch (error) {
-      console.error('Error submitting PTO request:', error);
+      toast.error('Error submitting PTO request:', error);
     } finally {
       setIsSubmitting(false);
     }

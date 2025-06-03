@@ -6,27 +6,21 @@ import { validateLoginInput, validateRegistrationInput } from '../utils/validati
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Verify JWT secret is configured
 if (!JWT_SECRET) {
-  console.error('JWT_SECRET is not configured in environment variables!');
   process.exit(1);
 }
 
 const generateToken = (userId: string): string => {
   try {
-    console.log('Generating token for user ID:', userId);
     const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
-    console.log('Token generated successfully');
     return token;
   } catch (error) {
-    console.error('Error generating token:', error);
     throw new Error('Failed to generate authentication token');
   }
 };
 
 export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Response): Promise<void> => {
   try {
-    console.log('Registration attempt with email:', req.body.email);
     const { firstName, lastName, email, password } = req.body;
 
     // Validate input
@@ -43,7 +37,6 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log('Registration failed: Email already exists:', email);
       res.status(400).json({ 
         success: false,
         message: 'Email already registered',
@@ -63,7 +56,6 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
     }) as IUser;
 
     await user.save();
-    console.log('New user created successfully:', { email, role: user.role });
 
     // Generate token
     const token = generateToken(user._id.toString());
@@ -83,7 +75,6 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
     res.status(500).json({ 
       success: false,
       message: 'Server error during registration',
@@ -94,7 +85,6 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
 
 export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response): Promise<void> => {
   try {
-    console.log('Login attempt with email:', req.body.email);
     const { email, password } = req.body;
 
     // Validate input
@@ -111,7 +101,6 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
     // Find user
     const user = await User.findOne({ email }) as IUser | null;
     if (!user) {
-      console.log('Login failed: User not found with email:', email);
       res.status(401).json({ 
         success: false,
         message: 'Authentication failed',
@@ -121,15 +110,11 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
       });
       return;
     }
-    console.log('User found:', { email: user.email, role: user.role });
 
     // Check password
-    console.log('Verifying password...');
     const isMatch = await user.comparePassword(password);
-    console.log('Password verification result:', isMatch);
     
     if (!isMatch) {
-      console.log('Login failed: Invalid password for email:', email);
       res.status(401).json({ 
         success: false,
         message: 'Authentication failed',
@@ -143,7 +128,6 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
     // Generate token
     const token = generateToken(user._id.toString());
 
-    console.log('Login successful for user:', { email: user.email, role: user.role });
     res.json({
       success: true,
       data: {
@@ -159,7 +143,6 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({ 
       success: false,
       message: 'Server error during login',
@@ -170,23 +153,19 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
 
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log('Fetching profile for user ID:', req.user!._id);
     const user = await User.findById(req.user!._id).select('-password') as IUser | null;
     if (!user) {
-      console.log('Profile fetch failed: User not found with ID:', req.user!._id);
       res.status(404).json({ 
         success: false,
         message: 'User not found' 
       });
       return;
     }
-    console.log('Profile fetched successfully for:', { email: user.email, role: user.role });
     res.json({
       success: true,
       data: user
     });
   } catch (error) {
-    console.error('Profile fetch error:', error);
     res.status(500).json({ 
       success: false,
       message: 'Server error while fetching profile',
@@ -228,7 +207,6 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
       data: user
     });
   } catch (error) {
-    console.error('Profile update error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while updating profile',
@@ -272,7 +250,6 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
       message: 'Password updated successfully'
     });
   } catch (error) {
-    console.error('Password update error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while updating password',
@@ -311,7 +288,6 @@ export const validateCurrentPassword = async (req: Request, res: Response): Prom
       message: 'Password is valid'
     });
   } catch (error) {
-    console.error('Password validation error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while validating password',

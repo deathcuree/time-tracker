@@ -15,7 +15,6 @@ const LoginPage = () => {
   
   // If already authenticated, redirect to dashboard
   React.useEffect(() => {
-    console.log('Authentication status:', isAuthenticated);
     if (isAuthenticated) {
       navigate('/dashboard');
     }
@@ -30,13 +29,8 @@ const LoginPage = () => {
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
 
-      console.log('Attempting login with:', { email });
       await login(email, password);
-      
-      // The navigation will happen automatically through the useEffect when isAuthenticated updates
     } catch (err: any) {
-      console.error('Login error:', err);
-      // Error is already handled in AuthContext
     } finally {
       setIsSubmitting(false);
     }
