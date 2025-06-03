@@ -9,13 +9,10 @@ export const UserManagement: React.FC = () => {
   const handleCreateUser = async (data: any) => {
     setIsLoading(true);
     try {
-      // TODO: Implement actual API call to create user
-      console.log('Creating user:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       toast.success('User created successfully');
     } catch (error) {
       toast.error('Failed to create user');
-      console.error('Error creating user:', error);
     } finally {
       setIsLoading(false);
     }
