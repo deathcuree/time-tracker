@@ -117,7 +117,6 @@ export function PTOProvider({ children }: { children: ReactNode }) {
       
       setRequests(fetchedRequests);
     } catch (error) {
-      console.error('Failed to load PTO requests:', error);
       toast.error('Failed to load PTO requests');
       setRequests([]); // Set empty array on error
     } finally {
@@ -142,7 +141,6 @@ export function PTOProvider({ children }: { children: ReactNode }) {
       await fetchRequests();
       toast.success('PTO request submitted successfully');
     } catch (error: any) {
-      console.error('Error creating PTO request:', error);
       // Display the server's validation error message
       toast.error(error.response?.data?.message || 'Failed to submit PTO request');
       throw error;
@@ -162,7 +160,6 @@ export function PTOProvider({ children }: { children: ReactNode }) {
       await fetchRequests();
       toast.success(`Request ${status} successfully`);
     } catch (error) {
-      console.error('Error updating PTO request:', error);
       toast.error('Failed to update request status');
     }
   };
@@ -174,7 +171,6 @@ export function PTOProvider({ children }: { children: ReactNode }) {
       const response = await axiosInstance.get(`${API_URL}/user/month/${year}/${month + 1}`);
       return response.data.count || 0;
     } catch (error) {
-      console.error('Error fetching PTO requests for month:', error);
       toast.error('Failed to load PTO requests for the selected month');
       return 0;
     }
@@ -187,7 +183,6 @@ export function PTOProvider({ children }: { children: ReactNode }) {
       const response = await axiosInstance.get(`${API_URL}/user/year/${year}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching yearly PTO hours:', error);
       toast.error('Failed to load yearly PTO information');
       return { totalHoursUsed: 0, yearlyLimit: 192, remainingHours: 192 };
     }

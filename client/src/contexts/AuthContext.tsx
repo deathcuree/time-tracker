@@ -54,28 +54,21 @@ interface AuthContextType {
 
 // Helper function to normalize user data
 const normalizeUserData = (response: ApiResponse<ServerUserData | AuthResponse>): User => {
-  console.log('Normalizing user data:', response);
-  
-  // Handle nested data structure
   const responseData = response.data;
   const userData: ServerUserData = 'user' in responseData 
     ? responseData.user 
     : responseData as ServerUserData;
-  
-  console.log('Raw user data:', userData);
   
   const id = 'id' in userData ? userData.id : userData._id;
   let name;
   
   if ('name' in userData && userData.name) {
     name = userData.name;
-    console.log('Using modern name field:', name);
   } else if ('firstName' in userData && 'lastName' in userData) {
     name = `${userData.firstName} ${userData.lastName}`.trim();
-    console.log('Using legacy name fields:', name);
   } else {
     name = 'Unknown User';
-    console.warn('User data missing name fields:', userData);
+    toast.info('User data missing name fields:', userData);
   }
   
   const normalizedUser = {
@@ -85,7 +78,6 @@ const normalizeUserData = (response: ApiResponse<ServerUserData | AuthResponse>)
     role: (userData.role || 'user') as UserRole
   };
   
-  console.log('Normalized user data:', normalizedUser);
   return normalizedUser;
 };
 
@@ -113,21 +105,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = localStorage.getItem('token');
         
         if (token) {
-          console.log('Found token, checking profile...');
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           const response = await api.get<ApiResponse<ServerUserData>>('/auth/profile');
-          console.log('Profile response:', response.data);
           
           if (!response.data.success) {
             throw new Error('Failed to fetch profile');
           }
           
           const normalizedUser = normalizeUserData(response.data);
-          console.log('Setting user state:', normalizedUser);
           setUser(normalizedUser);
         }
       } catch (error) {
-        console.error('Authentication error:', error);
+        toast.error('Authentication error:', error);
         localStorage.removeItem('token');
       } finally {
         setIsLoading(false);
@@ -141,9 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      console.log('Making login request...');
       const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', { email, password });
-      console.log('Login response:', response.data);
       
       if (!response.data.success) {
         throw new Error('Login request failed');

@@ -25,9 +25,7 @@ export interface User {
 
 export const usersApi = {
   createUser: async (data: CreateUserData): Promise<User> => {
-    console.log('Creating user:', { ...data, password: '[REDACTED]' });
     const response = await axiosInstance.post<{ user: User }>('/users', data);
-    console.log('Create user response:', response.data);
     return response.data.user;
   },
 }; 

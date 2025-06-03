@@ -77,15 +77,11 @@ export function TimeProvider({ children }: { children: ReactNode }) {
 
   // Load initial data
   useEffect(() => {
-    console.log('TimeProvider mounted, user status:', { isLoggedIn: !!user });
-    
     if (user) {
-      console.log('Fetching initial data...');
       Promise.all([
         fetchEntries(),
         checkCurrentStatus()
       ]).catch(error => {
-        console.error('Error initializing time context:', error);
         toast.error('Failed to load time data');
       });
     } else {
@@ -95,22 +91,16 @@ export function TimeProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // Update stats periodically when clocked in
   useEffect(() => {
-    console.log('Clock status changed:', { isClockedIn });
-    
     let intervalId: NodeJS.Timeout;
     
     if (isClockedIn) {
-      console.log('Setting up interval for stats updates');
-      // Update stats immediately and then every minute
       fetchTimeStats();
       intervalId = setInterval(fetchTimeStats, 60000);
     }
 
     return () => {
       if (intervalId) {
-        console.log('Clearing stats update interval');
         clearInterval(intervalId);
       }
     };
@@ -118,12 +108,10 @@ export function TimeProvider({ children }: { children: ReactNode }) {
 
   const fetchTimeStats = async () => {
     try {
-      console.log('Fetching time stats from server...');
       const response = await api.get('/time/stats');
-      console.log('Time stats received:', response.data);
       setTimeStats(response.data);
     } catch (error) {
-      console.error('Error fetching time stats:', error);
+      toast.error('Error fetching time stats:', error);
     }
   };
 
@@ -135,7 +123,6 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       setIsClockedIn(serverClockStatus);
       setCurrentEntry(activeEntry);
     } catch (error) {
-      console.error('Error checking clock status:', error);
       toast.error('Failed to check clock status');
     }
   };
@@ -144,7 +131,6 @@ export function TimeProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     try {
-      console.log('Fetching time entries...');
       setIsLoading(true);
       
       const queryParams = new URLSearchParams();
@@ -155,10 +141,6 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       if (filters?.limit) queryParams.append('limit', filters.limit.toString());
       
       const response = await api.get(`/time/entries?${queryParams.toString()}`);
-      console.log('Entries fetched:', {
-        count: response.data.entries?.length || 0,
-        pagination: response.data.pagination
-      });
       
       setEntries(response.data.entries || []);
       setPagination(response.data.pagination || {
@@ -167,10 +149,9 @@ export function TimeProvider({ children }: { children: ReactNode }) {
         totalItems: response.data.entries?.length || 0
       });
       
-      // Also update stats when fetching entries
       await fetchTimeStats();
     } catch (error) {
-      console.error('Error fetching time entries:', error);
+      toast.error('Error fetching time entries:', error);
       setEntries([]);
       setPagination({
         currentPage: 1,
@@ -189,13 +170,8 @@ export function TimeProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      console.log('Attempting to clock in...');
       const response = await api.post('/time/clock-in');
       const newEntry = response.data;
-      
-      console.log('Clock in successful:', {
-        entry: newEntry
-      });
       
       setEntries(prev => [...prev, newEntry]);
       setCurrentEntry(newEntry);
@@ -206,7 +182,6 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       
       toast.success('Successfully clocked in!');
     } catch (error) {
-      console.error('Error clocking in:', error);
       toast.error('Failed to clock in');
     }
   };
@@ -218,13 +193,8 @@ export function TimeProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      console.log('Attempting to clock out...');
       const response = await api.post('/time/clock-out');
       const updatedEntry = response.data;
-      
-      console.log('Clock out successful:', {
-        updatedEntry
-      });
       
       setEntries(prev => 
         prev.map(entry => entry.id === updatedEntry.id ? updatedEntry : entry)
@@ -237,7 +207,6 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       
       toast.success('Successfully clocked out!');
     } catch (error) {
-      console.error('Error clocking out:', error);
       toast.error('Failed to clock out');
     }
   };
