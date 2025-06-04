@@ -1,11 +1,10 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { toast } from '@/components/ui/sonner';
 import axios from 'axios';
+import { LoadingScreen } from '@/components/ui/loading';
 
-// Define types
 export type UserRole = 'user' | 'admin';
 
-// Define possible server response types
 interface BaseUserData {
   email: string;
   role: string;
@@ -93,13 +92,25 @@ const api = axios.create({
 // Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Hook for using the auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
 // Create a provider component
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Check if user is already logged in on mount
   useEffect(() => {
+    let isMounted = true;
+    
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -112,19 +123,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw new Error('Failed to fetch profile');
           }
           
-          const normalizedUser = normalizeUserData(response.data);
-          setUser(normalizedUser);
+          if (isMounted) {
+            const normalizedUser = normalizeUserData(response.data);
+            setUser(normalizedUser);
+          }
         }
       } catch (error) {
-        toast.error('Authentication error:', error);
         localStorage.removeItem('token');
+        delete api.defaults.headers.common['Authorization'];
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
       }
     };
 
     checkAuth();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  // Don't render anything until we've completed our initial auth check
+  if (!isInitialized) {
+    return <LoadingScreen />;
+  }
 
   // Login function
   const login = async (email: string, password: string) => {
@@ -244,13 +269,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-// Hook for using the auth context
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

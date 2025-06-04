@@ -6,6 +6,7 @@ import { TimeProvider } from "./contexts/TimeContext";
 import { PTOProvider } from "./contexts/PTOContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AdminRoute } from "./components/auth/AdminRoute";
+import { LoadingScreen } from "./components/ui/loading";
 import './App.css';
 
 // Pages
@@ -19,7 +20,11 @@ import NotFoundPage from "./pages/NotFoundPage";
 import AccountPage from "./pages/AccountPage";
 
 const AppRoutes = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <Routes>
