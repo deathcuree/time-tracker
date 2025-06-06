@@ -84,7 +84,7 @@
   }
 
   html {
-    font-family: 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   body {
@@ -113,42 +113,6 @@
   .animate-bounce,
   .animate-ping {
     transition: none !important;
-  }
-}
-
-@layer base {
-  @font-face {
-    font-family: 'SF Pro Display';
-    src: url('/fonts/SF-Pro-Display-Regular.otf') format('opentype');
-    font-weight: 400;
-    font-style: normal;
-  }
-
-  @font-face {
-    font-family: 'SF Pro Display';
-    src: url('/fonts/SF-Pro-Display-Medium.otf') format('opentype');
-    font-weight: 500;
-    font-style: normal;
-  }
-
-  @font-face {
-    font-family: 'SF Pro Display';
-    src: url('/fonts/SF-Pro-Display-Semibold.otf') format('opentype');
-    font-weight: 600;
-    font-style: normal;
-  }
-
-  * {
-    @apply border-border;
-  }
-
-  html {
-    font-family: 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-
-  body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
