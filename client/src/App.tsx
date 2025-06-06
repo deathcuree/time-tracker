@@ -19,7 +19,12 @@ import NotFoundPage from "./pages/NotFoundPage";
 import AccountPage from "./pages/AccountPage";
 
 const AppRoutes = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show nothing while checking authentication
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <Routes>
