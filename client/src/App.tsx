@@ -6,10 +6,8 @@ import { TimeProvider } from "./contexts/TimeContext";
 import { PTOProvider } from "./contexts/PTOContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AdminRoute } from "./components/auth/AdminRoute";
-import { LoadingScreen } from "./components/ui/loading";
 import './App.css';
 
-// Pages
 import DashboardPage from "./pages/DashboardPage";
 import TimeHistoryPage from "./pages/TimeHistoryPage";
 import PTORequestsPage from "./pages/PTORequestsPage";
@@ -18,6 +16,7 @@ import UserManagementPage from "./pages/UserManagementPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import AccountPage from "./pages/AccountPage";
+import { LoadingScreen } from "./components/ui/loading";
 
 const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -38,7 +37,6 @@ const AppRoutes = () => {
         <Route path="/pto-requests" element={<PTORequestsPage />} />
         <Route path="/account" element={<AccountPage />} />
         
-        {/* Admin Routes */}
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="/admin/users" element={<UserManagementPage />} />
