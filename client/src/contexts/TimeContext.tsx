@@ -1,24 +1,11 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from './AuthContext';
-import axios from 'axios';
+import axiosInstance from '@/lib/axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+const api = axiosInstance;
 
 export interface TimeEntry {
   id: string;
