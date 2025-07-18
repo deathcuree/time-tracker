@@ -16,7 +16,7 @@ interface JwtPayload {
 
 export const auth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const token = req.cookies.token;
     
     if (!token) {
       res.status(401).json({ message: 'Authentication required' });
