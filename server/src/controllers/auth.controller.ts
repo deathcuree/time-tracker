@@ -61,8 +61,8 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
     const token = generateToken(user._id.toString());
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -134,8 +134,8 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
     const token = generateToken(user._id.toString());
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
@@ -164,8 +164,8 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
 export const logout = (req: Request, res: Response): void => {
   res.clearCookie('token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: true, // Always true for cross-site cookies
+    sameSite: 'none', // Required for cross-site cookies
   });
   res.json({ success: true, message: 'Logged out successfully' });
 };
