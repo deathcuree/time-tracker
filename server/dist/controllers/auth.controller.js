@@ -2,26 +2,20 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { validateLoginInput, validateRegistrationInput } from '../utils/validation.js';
 const JWT_SECRET = process.env.JWT_SECRET;
-// Verify JWT secret is configured
 if (!JWT_SECRET) {
-    console.error('JWT_SECRET is not configured in environment variables!');
     process.exit(1);
 }
 const generateToken = (userId) => {
     try {
-        console.log('Generating token for user ID:', userId);
         const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
-        console.log('Token generated successfully');
         return token;
     }
     catch (error) {
-        console.error('Error generating token:', error);
         throw new Error('Failed to generate authentication token');
     }
 };
 export const register = async (req, res) => {
     try {
-        console.log('Registration attempt with email:', req.body.email);
         const { firstName, lastName, email, password } = req.body;
         // Validate input
         const validation = validateRegistrationInput(email, password, firstName, lastName);
@@ -36,7 +30,6 @@ export const register = async (req, res) => {
         // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            console.log('Registration failed: Email already exists:', email);
             res.status(400).json({
                 success: false,
                 message: 'Email already registered',
@@ -54,13 +47,17 @@ export const register = async (req, res) => {
             password
         });
         await user.save();
-        console.log('New user created successfully:', { email, role: user.role });
         // Generate token
         const token = generateToken(user._id.toString());
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
         res.status(201).json({
             success: true,
             data: {
-                token,
                 user: {
                     id: user._id,
                     firstName: user.firstName,
@@ -73,7 +70,6 @@ export const register = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Registration error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error during registration',
@@ -83,7 +79,6 @@ export const register = async (req, res) => {
 };
 export const login = async (req, res) => {
     try {
-        console.log('Login attempt with email:', req.body.email);
         const { email, password } = req.body;
         // Validate input
         const validation = validateLoginInput(email, password);
@@ -98,7 +93,6 @@ export const login = async (req, res) => {
         // Find user
         const user = await User.findOne({ email });
         if (!user) {
-            console.log('Login failed: User not found with email:', email);
             res.status(401).json({
                 success: false,
                 message: 'Authentication failed',
@@ -108,13 +102,9 @@ export const login = async (req, res) => {
             });
             return;
         }
-        console.log('User found:', { email: user.email, role: user.role });
         // Check password
-        console.log('Verifying password...');
         const isMatch = await user.comparePassword(password);
-        console.log('Password verification result:', isMatch);
         if (!isMatch) {
-            console.log('Login failed: Invalid password for email:', email);
             res.status(401).json({
                 success: false,
                 message: 'Authentication failed',
@@ -126,11 +116,15 @@ export const login = async (req, res) => {
         }
         // Generate token
         const token = generateToken(user._id.toString());
-        console.log('Login successful for user:', { email: user.email, role: user.role });
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
         res.json({
             success: true,
             data: {
-                token,
                 user: {
                     id: user._id,
                     firstName: user.firstName,
@@ -143,7 +137,6 @@ export const login = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Login error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error during login',
@@ -151,26 +144,30 @@ export const login = async (req, res) => {
         });
     }
 };
+export const logout = (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+    });
+    res.json({ success: true, message: 'Logged out successfully' });
+};
 export const getProfile = async (req, res) => {
     try {
-        console.log('Fetching profile for user ID:', req.user._id);
         const user = await User.findById(req.user._id).select('-password');
         if (!user) {
-            console.log('Profile fetch failed: User not found with ID:', req.user._id);
             res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
             return;
         }
-        console.log('Profile fetched successfully for:', { email: user.email, role: user.role });
         res.json({
             success: true,
             data: user
         });
     }
     catch (error) {
-        console.error('Profile fetch error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error while fetching profile',
@@ -204,7 +201,6 @@ export const updateProfile = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Profile update error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error while updating profile',
@@ -243,7 +239,6 @@ export const updatePassword = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Password update error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error while updating password',
@@ -278,7 +273,6 @@ export const validateCurrentPassword = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Password validation error:', error);
         res.status(500).json({
             success: false,
             message: 'Server error while validating password',
