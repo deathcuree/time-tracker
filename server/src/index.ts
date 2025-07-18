@@ -22,6 +22,7 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN as string;
 
 app.use(helmet());
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+app.options('*', cors({ origin: CORS_ORIGIN, credentials: true }));
 app.use(express.json());
 app.use(cookieParser() as any);
 app.use(morgan('combined'));

@@ -162,7 +162,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/time-tracker-api/dev/1752818479500-2025-07-18T06:01:19.500Z/time-tracker-api.zip"
+          "S3Key": "serverless/time-tracker-api/dev/1752821042176-2025-07-18T06:44:02.176Z/time-tracker-api.zip"
         },
         "Handler": "dist/index.handler",
         "Runtime": "nodejs18.x",
@@ -174,7 +174,8 @@
             "MONGODB_URI": "mongodb+srv://nikaandaya21:ABVbQRlUAbtJ1R3T@cluster0.9pbe8ff.mongodb.net/",
             "CORS_ORIGIN": "https://time-tracker-delta-ashen.vercel.app/",
             "JWT_SECRET": "99cd09b976f5ad1c72825444606ea50681dc2be48e02554f8a214e540ffbd9571d2672964b2ca62b3bc62b356308ac3203239069695b1b06d54ff72a993b79da",
-            "PORT": "5000"
+            "PORT": "5000",
+            "NODE_ENV": "production"
           }
         },
         "Role": {
@@ -188,21 +189,43 @@
         "AppLogGroup"
       ]
     },
-    "AppLambdaVersionfA45hqrtNtdZtuJ1IhXLeZCyUfEcI26nUzpKMV8gs8": {
+    "AppLambdaVersionriRnZOapBkKz4QCqtTxhcXBXKqZ2imYkjXMRwSHmQ": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "AppLambdaFunction"
         },
-        "CodeSha256": "9qJZAe67yvnRpJqZ2ebHfy84evUjLNCOKi9QRzjQtes="
+        "CodeSha256": "lcQcKxje2CRdQukCj3Y/wK79eNme1g5vp3pJaHwOcoQ="
       }
     },
     "HttpApi": {
       "Type": "AWS::ApiGatewayV2::Api",
       "Properties": {
         "Name": "dev-time-tracker-api",
-        "ProtocolType": "HTTP"
+        "ProtocolType": "HTTP",
+        "CorsConfiguration": {
+          "AllowCredentials": true,
+          "AllowHeaders": [
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "Accept",
+            "Origin"
+          ],
+          "AllowMethods": [
+            "OPTIONS",
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "HEAD",
+            "DELETE"
+          ],
+          "AllowOrigins": [
+            "https://time-tracker-delta-ashen.vercel.app"
+          ]
+        }
       }
     },
     "HttpApiStage": {
@@ -306,7 +329,7 @@
     "AppLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "AppLambdaVersionfA45hqrtNtdZtuJ1IhXLeZCyUfEcI26nUzpKMV8gs8"
+        "Ref": "AppLambdaVersionriRnZOapBkKz4QCqtTxhcXBXKqZ2imYkjXMRwSHmQ"
       },
       "Export": {
         "Name": "sls-time-tracker-api-dev-AppLambdaFunctionQualifiedArn"
