@@ -95,7 +95,6 @@ export const createRequest = async (req, res) => {
         res.status(201).json(ptoRequest);
     }
     catch (error) {
-        console.error('Error creating PTO request:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
@@ -131,7 +130,6 @@ export const getUserRequests = async (req, res) => {
         res.json(transformedRequests);
     }
     catch (error) {
-        console.error('Error fetching user requests:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
@@ -167,7 +165,6 @@ export const updateRequestStatus = async (req, res) => {
         res.json(updatedRequest);
     }
     catch (error) {
-        console.error('Error updating PTO request:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
@@ -236,7 +233,6 @@ export const getAllRequests = async (req, res) => {
         res.json(transformedRequests);
     }
     catch (error) {
-        console.error('Error fetching all requests:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
@@ -260,7 +256,6 @@ export const getMonthlyRequestCount = async (req, res) => {
         res.json({ count: totalHours });
     }
     catch (error) {
-        console.error('Error getting monthly PTO request count:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
@@ -288,7 +283,6 @@ export const getYearlyPTOHours = async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Error getting yearly PTO hours:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };

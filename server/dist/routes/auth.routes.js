@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { login, getProfile, updateProfile, updatePassword, validateCurrentPassword } from '../controllers/auth.controller.js';
+import { login, getProfile, updateProfile, updatePassword, validateCurrentPassword, logout } from '../controllers/auth.controller.js';
 import { auth } from '../middleware/auth.js';
 const router = express.Router();
 // Validation middleware
@@ -20,6 +20,7 @@ const updatePasswordValidation = [
 ];
 // Routes
 router.post('/login', loginValidation, login);
+router.post('/logout', logout);
 router.get('/profile', auth, getProfile);
 router.put('/profile', auth, updateProfileValidation, updateProfile);
 router.put('/password', auth, updatePasswordValidation, updatePassword);
