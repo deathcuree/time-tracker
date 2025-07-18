@@ -19,6 +19,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const CORS_ORIGIN = process.env.CORS_ORIGIN;
 app.use(helmet());
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+app.options('*', cors({ origin: CORS_ORIGIN, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('combined'));

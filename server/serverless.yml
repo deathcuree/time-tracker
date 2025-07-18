@@ -7,6 +7,17 @@ provider:
   environment:
     MONGODB_URI: ${env:MONGODB_URI}
     CORS_ORIGIN: ${env:CORS_ORIGIN}
+  httpApi:
+    cors:
+      allowedOrigins:
+        - https://time-tracker-delta-ashen.vercel.app
+      allowCredentials: true
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+        - X-Requested-With
+        - Accept
+        - Origin
 
 functions:
   app:
