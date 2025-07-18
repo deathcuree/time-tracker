@@ -59,11 +59,16 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
 
     // Generate token
     const token = generateToken(user._id.toString());
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
 
     res.status(201).json({
       success: true,
       data: {
-        token,
         user: {
           id: user._id,
           firstName: user.firstName,
@@ -127,11 +132,16 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
 
     // Generate token
     const token = generateToken(user._id.toString());
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
 
     res.json({
       success: true,
       data: {
-        token,
         user: {
           id: user._id,
           firstName: user.firstName,
@@ -149,6 +159,15 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
       error: (error as Error).message 
     });
   }
+};
+
+export const logout = (req: Request, res: Response): void => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+  res.json({ success: true, message: 'Logged out successfully' });
 };
 
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
