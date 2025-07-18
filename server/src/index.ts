@@ -10,13 +10,13 @@ import userRoutes from './routes/user.routes.js';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import http from 'http';
+import serverless from 'serverless-http';
 import { validateEnv } from './utils/validateEnv.js';
 
 validateEnv();
 
 const app: Express = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT;
 const MONGODB_URI = process.env.MONGODB_URI as string;
 const CORS_ORIGIN = process.env.CORS_ORIGIN as string;
 
@@ -41,46 +41,32 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message });
 });
 
+let isConnected = false;
 const connectDB = async () => {
-  try {
-    await mongoose.connect(MONGODB_URI, {
-      dbName: 'TimeTrackerDB',
-      autoCreate: true 
-    });
-    const dbName = mongoose.connection?.db?.databaseName;
-    console.log(`Connected to database: ${dbName}`);
-    if (dbName !== 'TimeTrackerDB') {
-      throw new Error('Connected to wrong database! Please check your connection string.');
-    }
-    console.log('Successfully connected to MongoDB.');
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
+  if (isConnected || mongoose.connection.readyState === 1) return;
+  await mongoose.connect(MONGODB_URI, { dbName: 'TimeTrackerDB', autoCreate: true });
+  isConnected = true;
+  const dbName = mongoose.connection?.db?.databaseName;
+  console.log(`Connected to database: ${dbName}`);
+  if (dbName !== 'TimeTrackerDB') {
+    throw new Error('Connected to wrong database! Please check your connection string.');
   }
+  console.log('Successfully connected to MongoDB.');
 };
 
-const server = http.createServer(app);
-const shutdown = async () => {
-  console.log('Shutting down gracefully...');
-  await mongoose.disconnect();
-  server.close(() => {
-    console.log('Server closed.');
-    process.exit(0);
+const handler = async (event: any, context: any) => {
+  context.callbackWaitsForEmptyEventLoop = false;
+  await connectDB();
+  const serverlessHandler = serverless(app);
+  return serverlessHandler(event, context);
+};
+
+if (process.env.AWS_LAMBDA_FUNCTION_NAME === undefined) {
+  connectDB().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running locally on port ${PORT}`);
+    });
   });
-};
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+}
 
-const startServer = async () => {
-  try {
-    await connectDB();
-    server.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  } catch (err) {
-    console.error('Failed to start server:', err);
-    process.exit(1);
-  }
-};
-
-startServer(); 
+export { handler }; 

@@ -1,0 +1,24 @@
+service: time-tracker-api
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-southeast-1
+  environment:
+    MONGODB_URI: ${env:MONGODB_URI}
+    CORS_ORIGIN: ${env:CORS_ORIGIN}
+
+functions:
+  app:
+    handler: dist/index.handler
+    events:
+      - httpApi: '*'
+
+package:
+  patterns:
+    - dist/**
+    - node_modules/**
+    - package.json 
+
+plugins:
+    - serverless-dotenv-plugin
