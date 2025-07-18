@@ -3,12 +3,11 @@ import User from '../models/User.js';
 const JWT_SECRET = process.env.JWT_SECRET;
 // Verify JWT secret is configured
 if (!JWT_SECRET) {
-    console.error('JWT_SECRET is not configured in environment variables!');
     process.exit(1);
 }
 export const auth = async (req, res, next) => {
     try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
+        const token = req.cookies.token;
         if (!token) {
             res.status(401).json({ message: 'Authentication required' });
             return;
@@ -23,7 +22,6 @@ export const auth = async (req, res, next) => {
         next();
     }
     catch (error) {
-        console.error('Auth middleware error:', error);
         res.status(401).json({ message: 'Invalid token' });
     }
 };
@@ -36,7 +34,6 @@ export const isAdmin = async (req, res, next) => {
         next();
     }
     catch (error) {
-        console.error('Admin check error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
