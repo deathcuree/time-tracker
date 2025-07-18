@@ -7,12 +7,17 @@ import timeRoutes from './routes/time.routes.js';
 import ptoRoutes from './routes/pto.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import userRoutes from './routes/user.routes.js';
+import cookieParser from 'cookie-parser';
 
 const app: Express = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000', // or your frontend's URL
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser() as any);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -24,7 +29,7 @@ app.use('/api/users', userRoutes);
 // MongoDB Connection
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/TimeTrackerDB';
+    const mongoURI = process.env.MONGODB_URI as string;
     console.log('Attempting to connect to MongoDB...');
     
     // Clear any existing connection
@@ -34,7 +39,7 @@ const connectDB = async () => {
 
     await mongoose.connect(mongoURI, {
       dbName: 'TimeTrackerDB',
-      autoCreate: true // Automatically create the database if it doesn't exist
+      autoCreate: true 
     });
 
     // Verify we're connected to the correct database
@@ -47,8 +52,6 @@ const connectDB = async () => {
 
     console.log('Successfully connected to MongoDB.');
     
-    // Create initial admin user if none exists
-    await createInitialAdmin();
   } catch (err) {
     console.error('MongoDB connection error:', err);
     process.exit(1);
@@ -61,49 +64,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-const PORT = process.env.PORT || 5000;
-
-// Function to create initial admin user
-async function createInitialAdmin() {
-  try {
-    console.log('Checking for existing admin users...');
-    const User = mongoose.model('User');
-    
-    // First, check if the users collection exists
-    const collections = await mongoose.connection?.db?.listCollections().toArray();
-    const usersCollectionExists = collections?.some(col => col.name === 'users');
-    
-    if (!usersCollectionExists) {
-      console.log('Users collection does not exist. It will be created automatically.');
-    }
-
-    const adminCount = await User.countDocuments({ role: 'admin' });
-    console.log(`Found ${adminCount} existing admin users.`);
-    
-    if (adminCount === 0) {
-      console.log('Creating initial admin user...');
-      const adminUser = new User({
-        firstName: 'Admin',
-        lastName: 'User',
-        email: 'admin@timetracker.com',
-        password: 'admin123!@#',
-        role: 'admin'
-      });
-      
-      await adminUser.save();
-      console.log('Initial admin user created successfully:', {
-        email: adminUser.email,
-        role: adminUser.role,
-        id: adminUser._id
-      });
-    } else {
-      console.log('Admin user already exists. Skipping creation.');
-    }
-  } catch (error) {
-    console.error('Error in createInitialAdmin:', error);
-    throw error; // Rethrow to handle it in the main connection function
-  }
-}
+const PORT = process.env.PORT;
 
 // Start server
 const startServer = async () => {
