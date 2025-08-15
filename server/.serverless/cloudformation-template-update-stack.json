@@ -162,10 +162,10 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/time-tracker-api/dev/1752821042176-2025-07-18T06:44:02.176Z/time-tracker-api.zip"
+          "S3Key": "serverless/time-tracker-api/dev/1755234839588-2025-08-15T05:13:59.588Z/time-tracker-api.zip"
         },
         "Handler": "dist/index.handler",
-        "Runtime": "nodejs18.x",
+        "Runtime": "nodejs20.x",
         "FunctionName": "time-tracker-api-dev-app",
         "MemorySize": 1024,
         "Timeout": 6,
@@ -189,14 +189,14 @@
         "AppLogGroup"
       ]
     },
-    "AppLambdaVersionriRnZOapBkKz4QCqtTxhcXBXKqZ2imYkjXMRwSHmQ": {
+    "AppLambdaVersionvrQ50ebGI1MPWjvpmhRCwuLF07nIGPcOyp8taZoFM": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "AppLambdaFunction"
         },
-        "CodeSha256": "lcQcKxje2CRdQukCj3Y/wK79eNme1g5vp3pJaHwOcoQ="
+        "CodeSha256": "YjjYdGAC8Z4evOlSfgzYgoBxPDMtplq+WrZH+ugv7u4="
       }
     },
     "HttpApi": {
@@ -329,7 +329,7 @@
     "AppLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "AppLambdaVersionriRnZOapBkKz4QCqtTxhcXBXKqZ2imYkjXMRwSHmQ"
+        "Ref": "AppLambdaVersionvrQ50ebGI1MPWjvpmhRCwuLF07nIGPcOyp8taZoFM"
       },
       "Export": {
         "Name": "sls-time-tracker-api-dev-AppLambdaFunctionQualifiedArn"
