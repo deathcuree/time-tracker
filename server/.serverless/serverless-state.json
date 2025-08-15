@@ -6,7 +6,7 @@
     },
     "provider": {
       "name": "aws",
-      "runtime": "nodejs18.x",
+      "runtime": "nodejs20.x",
       "region": "ap-southeast-1",
       "environment": {
         "MONGODB_URI": "mongodb+srv://nikaandaya21:ABVbQRlUAbtJ1R3T@cluster0.9pbe8ff.mongodb.net/",
@@ -196,10 +196,10 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/time-tracker-api/dev/1752821042176-2025-07-18T06:44:02.176Z/time-tracker-api.zip"
+                "S3Key": "serverless/time-tracker-api/dev/1755234839588-2025-08-15T05:13:59.588Z/time-tracker-api.zip"
               },
               "Handler": "dist/index.handler",
-              "Runtime": "nodejs18.x",
+              "Runtime": "nodejs20.x",
               "FunctionName": "time-tracker-api-dev-app",
               "MemorySize": 1024,
               "Timeout": 6,
@@ -223,14 +223,14 @@
               "AppLogGroup"
             ]
           },
-          "AppLambdaVersionriRnZOapBkKz4QCqtTxhcXBXKqZ2imYkjXMRwSHmQ": {
+          "AppLambdaVersionvrQ50ebGI1MPWjvpmhRCwuLF07nIGPcOyp8taZoFM": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "AppLambdaFunction"
               },
-              "CodeSha256": "lcQcKxje2CRdQukCj3Y/wK79eNme1g5vp3pJaHwOcoQ="
+              "CodeSha256": "YjjYdGAC8Z4evOlSfgzYgoBxPDMtplq+WrZH+ugv7u4="
             }
           },
           "HttpApi": {
@@ -360,7 +360,7 @@
           "AppLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "AppLambdaVersionriRnZOapBkKz4QCqtTxhcXBXKqZ2imYkjXMRwSHmQ"
+              "Ref": "AppLambdaVersionvrQ50ebGI1MPWjvpmhRCwuLF07nIGPcOyp8taZoFM"
             },
             "Export": {
               "Name": "sls-time-tracker-api-dev-AppLambdaFunctionQualifiedArn"
@@ -503,9 +503,9 @@
         "package": {},
         "memory": 1024,
         "timeout": 6,
-        "runtime": "nodejs18.x",
+        "runtime": "nodejs20.x",
         "vpc": {},
-        "versionLogicalId": "AppLambdaVersionriRnZOapBkKz4QCqtTxhcXBXKqZ2imYkjXMRwSHmQ"
+        "versionLogicalId": "AppLambdaVersionvrQ50ebGI1MPWjvpmhRCwuLF07nIGPcOyp8taZoFM"
       }
     },
     "configValidationMode": "warn",
@@ -526,7 +526,7 @@
         ],
         "artifactsS3KeyDirname": "serverless/time-tracker-api/dev/code-artifacts",
         "artifact": "/Users/nika/Documents/personal-projects/time-tracker/server/.serverless/time-tracker-api.zip",
-        "artifactDirectoryName": "serverless/time-tracker-api/dev/1752821042176-2025-07-18T06:44:02.176Z"
+        "artifactDirectoryName": "serverless/time-tracker-api/dev/1755234839588-2025-08-15T05:13:59.588Z"
       },
       "plugins": {
         "$ref": "$[\"service\"][\"plugins\"]"
@@ -537,7 +537,7 @@
     "artifact": "/Users/nika/Documents/personal-projects/time-tracker/server/.serverless/time-tracker-api.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/time-tracker-api/dev/1752821042176-2025-07-18T06:44:02.176Z",
+    "artifactDirectoryName": "serverless/time-tracker-api/dev/1755234839588-2025-08-15T05:13:59.588Z",
     "artifact": "time-tracker-api.zip"
   }
 }
