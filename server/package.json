@@ -4,6 +4,7 @@
   "description": "Backend for Time Track Pro Portal",
   "type": "module",
   "main": "dist/index.js",
+  "engines": { "node": ">=22" },
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon",
@@ -30,7 +31,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.22",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/node": "^20.17.50",
+    "@types/node": "^22.5.5",
     "dotenv-cli": "^8.0.0",
     "nodemon": "^3.0.2",
     "serverless": "^3.38.0",
