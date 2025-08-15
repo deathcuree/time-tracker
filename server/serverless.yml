@@ -2,7 +2,7 @@ service: time-tracker-api
 
 provider:
   name: aws
-  runtime: nodejs22.x
+  runtime: nodejs20.x
   region: ap-southeast-1
   environment:
     MONGODB_URI: ${env:MONGODB_URI}
