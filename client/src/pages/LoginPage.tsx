@@ -15,6 +15,13 @@ const LoginPage = () => {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
+
+  React.useEffect(() => {
+    document.body.classList.add('login');
+    return () => {
+      document.body.classList.remove('login');
+    };
+  }, []);
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

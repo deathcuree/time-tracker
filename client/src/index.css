@@ -205,3 +205,10 @@
   background: rgba(17, 17, 17, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+/* Route-specific overrides: neutralize Vite template root styles only on Login */
+body.login #root {
+  padding: 0 !important;
+  max-width: none !important;
+  text-align: initial !important;
+}
