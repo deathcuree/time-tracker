@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 
 type LoginFormProps = {
   onSubmit: (email: string, password: string) => Promise<void> | void;
@@ -20,7 +20,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
   passwordPlaceholder = 'Password',
   submitText = 'Sign in',
 }) => {
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,29 +43,15 @@ const LoginForm: React.FC<LoginFormProps> = ({
         />
       </div>
 
-      <div className="space-y-2 relative">
-        <Input
+      <div className="space-y-2">
+        <PasswordInput
           id="password"
           name="password"
-          type={showPassword ? 'text' : 'password'}
           placeholder={passwordPlaceholder}
           required
           disabled={isSubmitting}
           className="focus:ring-2 focus:ring-primary"
         />
-
-        <button
-          type="button"
-          onClick={() => setShowPassword((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-[90%] pt-0.5 text-gray-500 hover:text-gray-700 focus:outline-none"
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
-        >
-          {showPassword ? (
-            <EyeOff className="h-5 w-5" />
-          ) : (
-            <Eye className="h-5 w-5" />
-          )}
-        </button>
       </div>
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
