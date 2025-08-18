@@ -10,7 +10,6 @@ const LoginPage = () => {
   const { login, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // If already authenticated, redirect to dashboard
   React.useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');

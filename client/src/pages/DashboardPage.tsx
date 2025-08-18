@@ -11,10 +11,9 @@ import { formatElapsedTime } from '@/utils/timeFormatters';
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { isClockedIn, totalHoursToday, totalHoursThisWeek, currentEntry } = useTime();
-  const { userPTOsThisMonth, userPTOLimit, fetchRequests } = usePTO();
-  const [elapsedTime, setElapsedTime] = useState<string>('');
+  const { fetchRequests } = usePTO();
+  const [, setElapsedTime] = useState<string>('');
   
-  // Refresh PTO data when component mounts and becomes visible
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -22,10 +21,8 @@ const DashboardPage: React.FC = () => {
       }
     };
 
-    // Initial fetch
     fetchRequests();
 
-    // Add visibility change listener
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
@@ -33,17 +30,14 @@ const DashboardPage: React.FC = () => {
     };
   }, []); 
   
-  // Update elapsed time every minute
   useEffect(() => {
     if (currentEntry) {
       const updateElapsedTime = () => {
         setElapsedTime(formatElapsedTime(currentEntry.clockIn));
       };
       
-      // Update immediately
       updateElapsedTime();
       
-      // Then update every minute
       const intervalId = setInterval(updateElapsedTime, 60000);
       
       return () => clearInterval(intervalId);
@@ -57,20 +51,16 @@ const DashboardPage: React.FC = () => {
         <p className="text-muted-foreground">Track your time and request time off</p>
       </div>
       
-      {/* Stats Row */}
       <TimeStats
         isClockedIn={isClockedIn}
         totalHoursToday={totalHoursToday}
         totalHoursThisWeek={totalHoursThisWeek}
       />
       
-      {/* Clock In/Out Card */}
       <TimeTrackingCard currentEntry={currentEntry} />
       
-      {/* PTO Status */}
       <PTOStatus />
       
-      {/* PTO Form */}
       <PTOForm />
     </div>
   );

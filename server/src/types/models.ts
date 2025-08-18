@@ -4,11 +4,11 @@ export interface IUser extends Document {
   _id: Types.ObjectId;
   firstName: string;
   lastName: string;
-  name: string; // Virtual field
+  name: string;
   email: string;
   password: string;
   role: 'user' | 'admin';
-  position: string;
+  position?: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
   createdAt: Date;
   updatedAt: Date;
@@ -37,12 +37,11 @@ export interface IPTORequest extends Document {
   approvedBy: Types.ObjectId | null;
   approvalDate: Date | null;
   expiryYear: number;
-  month: number; // Virtual field
+  month: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Request types
 export interface ILoginRequest {
   email: string;
   password: string;
@@ -61,7 +60,6 @@ export interface IPTORequestBody {
   reason: string;
 }
 
-// Custom request type with user
 declare global {
   namespace Express {
     interface Request {
