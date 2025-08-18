@@ -32,7 +32,7 @@ const userSchema = new Schema<IUser>({
   },
   position: {
     type: String,
-    required: true,
+    required: false,
     trim: true
   }
 }, {

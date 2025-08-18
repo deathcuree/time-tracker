@@ -28,7 +28,6 @@ export default function UserManagementPage() {
       form.reset();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to create user');
-      // If it's a validation error from the server, set the form error
       if (error.response?.data?.message === 'User with this email already exists') {
         form.setError('email', {
           type: 'manual',
