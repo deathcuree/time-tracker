@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
@@ -201,29 +201,27 @@ export const PasswordForm = ({ onUpdatePassword, validateCurrentPassword }: Pass
         <form onSubmit={handlePasswordUpdate} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="currentPassword">Current Password</Label>
-            <div className="relative">
-              <Input
-                id="currentPassword"
-                type="password"
-                value={currentPassword}
-                onChange={handleCurrentPasswordChange}
-                onBlur={handleCurrentPasswordBlur}
-                disabled={isPasswordUpdating}
-                aria-invalid={!!passwordErrors.currentPassword}
-              />
-              {isCheckingPassword && (
-                <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-              )}
-            </div>
+            <PasswordInput
+              id="currentPassword"
+              value={currentPassword}
+              onChange={handleCurrentPasswordChange}
+              onBlur={handleCurrentPasswordBlur}
+              disabled={isPasswordUpdating}
+              aria-invalid={!!passwordErrors.currentPassword}
+              rightAdornment={
+                isCheckingPassword ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : undefined
+              }
+            />
             {passwordErrors.currentPassword && (
               <p className="text-sm text-destructive">{passwordErrors.currentPassword}</p>
             )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="newPassword">New Password</Label>
-            <Input
+            <PasswordInput
               id="newPassword"
-              type="password"
               value={newPassword}
               onChange={handleNewPasswordChange}
               disabled={isPasswordUpdating}
@@ -235,9 +233,8 @@ export const PasswordForm = ({ onUpdatePassword, validateCurrentPassword }: Pass
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
-            <Input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               value={confirmPassword}
               onChange={handleConfirmPasswordChange}
               disabled={isPasswordUpdating}
