@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { NavLink, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
-import { Clock, Calendar, User, LogOut, Settings, Sun, Moon, Users, Menu } from 'lucide-react';
+import { Clock, Calendar, User, LogOut, Settings, Sun, Moon, Users, Menu, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
@@ -69,8 +69,8 @@ export const AppLayout = () => {
   const accountMenuItem: MenuItem = { title: 'Account Settings', path: '/account', icon: Settings };
   
   const adminMenuItems: MenuItem[] = [
-    { title: 'Admin Dashboard', path: '/admin', icon: Settings },
-    { title: 'User Management', path: '/admin/users', icon: Users },
+    { title: 'Approve PTO', path: '/admin', icon: ClipboardCheck },
+    { title: 'Create User', path: '/admin/users', icon: Users },
   ];
   
   const menuItems = user?.role === 'admin'
