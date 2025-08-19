@@ -7,7 +7,6 @@ import { PTOProvider } from "./contexts/PTOContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AdminRoute } from "./components/auth/AdminRoute";
 
-
 import './App.css';
 
 import DashboardPage from "./pages/DashboardPage";
@@ -21,7 +20,7 @@ import AccountPage from "./pages/AccountPage";
 import { LoadingScreen } from "./components/ui/loading";
 
 const AppRoutes = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -29,14 +28,14 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} 
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to={user?.role === 'admin' ? "/admin" : "/dashboard"} /> : <LoginPage />}
       />
       <Route element={<AppLayout />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/time-history" element={<TimeHistoryPage />} />
-        <Route path="/pto-requests" element={<PTORequestsPage />} />
+        <Route path="/dashboard" element={user?.role === 'admin' ? <Navigate to="/admin" /> : <DashboardPage />} />
+        <Route path="/time-history" element={user?.role === 'admin' ? <Navigate to="/admin" /> : <TimeHistoryPage />} />
+        <Route path="/pto-requests" element={user?.role === 'admin' ? <Navigate to="/admin" /> : <PTORequestsPage />} />
         <Route path="/account" element={<AccountPage />} />
         
         <Route element={<AdminRoute />}>
@@ -44,9 +43,9 @@ const AppRoutes = () => {
           <Route path="/admin/users" element={<UserManagementPage />} />
         </Route>
       </Route>
-      <Route 
-        path="/" 
-        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} 
+      <Route
+        path="/"
+        element={<Navigate to={isAuthenticated ? (user?.role === 'admin' ? "/admin" : "/dashboard") : "/login"} />}
       />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
