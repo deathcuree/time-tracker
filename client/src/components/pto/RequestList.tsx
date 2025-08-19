@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Pagination } from '@/components/shared/Pagination';
 import { TableRowSkeleton } from '@/components/shared/TableRowSkeleton';
 import { ApproveDenyActions } from '@/components/shared/ApproveDenyActions';
+import ExportButton from '@/components/shared/ExportButton';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -157,20 +158,35 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
     { value: 'denied', label: 'Denied' },
   ];
 
-  const renderToolbar = (disabled: boolean = false) => (
-    <SearchWithFilterBar
-      searchValue={searchInputValue}
-      onSearchChange={handleSearchChange}
-      searchPlaceholder="Search"
-      filterValue={statusFilter}
-      onFilterChange={handleStatusFilterChange}
-      filterOptions={filterOptions}
-      filterPlaceholder="Filter by status"
-      disabled={disabled}
-      selectDisabled={disabled}
-      className="p-4"
-    />
-  );
+  const renderToolbar = (disabled: boolean = false) => {
+    const isAdminLocal = user?.role === 'admin';
+    const exportDisabled = disabled || requests.length === 0;
+
+    return (
+      <div className="flex items-center justify-between p-4 gap-4 flex-col sm:flex-row">
+        <SearchWithFilterBar
+          searchValue={searchInputValue}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Search"
+          filterValue={statusFilter}
+          onFilterChange={handleStatusFilterChange}
+          filterOptions={filterOptions}
+          filterPlaceholder="Filter by status"
+          disabled={disabled}
+          selectDisabled={disabled}
+          className="p-0 flex-1"
+        />
+        {isAdminLocal && (
+          <ExportButton
+            params={{ search: searchQuery || undefined, status: statusFilter }}
+            disabled={exportDisabled}
+            size="sm"
+            label="Export"
+          />
+        )}
+      </div>
+    );
+  };
 
   const isAdmin = user?.role === 'admin';
   const headerColsBase = 4;
