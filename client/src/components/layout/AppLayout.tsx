@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { LoadingScreen } from '@/components/ui/loading';
 
 interface MenuItem {
   title: string;
@@ -52,14 +53,7 @@ export const AppLayout = () => {
   const isMobile = useIsMobile();
   
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center animate-fade-in">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-lg">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   if (!isAuthenticated) {
@@ -86,7 +80,6 @@ export const AppLayout = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        {/* Sidebar with icon mode when collapsed */}
         <Sidebar 
           className={cn(
             "flex-shrink-0 bg-sidebar-background border-r border-sidebar-border transition-[width]",
@@ -106,7 +99,6 @@ export const AppLayout = () => {
                 "group-data-[collapsible=icon]:text-lg",
                 "text-2xl"
               )}>
-                {/* Show only first letter when collapsed */}
                 <span className="group-data-[collapsible=icon]:hidden">TimeTracker</span>
                 <span className="hidden group-data-[collapsible=icon]:inline">TT</span>
               </h1>
@@ -160,7 +152,6 @@ export const AppLayout = () => {
         </Sidebar>
         
         <main className="flex-1 overflow-y-auto">
-          {/* Persistent Header for All Screen Sizes */}
           <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
             <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
               <div className="flex items-center gap-3">
@@ -173,7 +164,6 @@ export const AppLayout = () => {
                 <h1 className="text-xl font-semibold">TimeTracker</h1>
               </div>
               
-              {/* User Info on Header - Visible when sidebar is collapsed */}
               <div className="flex items-center gap-4">
                 <span className="text-sm text-muted-foreground hidden md:block">
                   {user?.name} • {user?.role}
