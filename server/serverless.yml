@@ -10,7 +10,7 @@ provider:
   httpApi:
     cors:
       allowedOrigins:
-        - https://time-tracker-delta-ashen.vercel.app
+        - ${env:CORS_ORIGIN}
       allowCredentials: true
       allowedHeaders:
         - Content-Type
