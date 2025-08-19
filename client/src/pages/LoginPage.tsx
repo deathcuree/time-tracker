@@ -10,12 +10,18 @@ const LoginPage = () => {
   const { login, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // If already authenticated, redirect to dashboard
   React.useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
+
+  React.useEffect(() => {
+    document.body.classList.add('login');
+    return () => {
+      document.body.classList.remove('login');
+    };
+  }, []);
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

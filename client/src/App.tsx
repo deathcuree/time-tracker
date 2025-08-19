@@ -6,6 +6,8 @@ import { TimeProvider } from "./contexts/TimeContext";
 import { PTOProvider } from "./contexts/PTOContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AdminRoute } from "./components/auth/AdminRoute";
+
+
 import './App.css';
 
 import DashboardPage from "./pages/DashboardPage";
