@@ -9,6 +9,7 @@
   "devDependencies": {
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
+    "@types/lodash": "^4.17.20",
     "@types/morgan": "^1.9.10",
     "concurrently": "^8.2.2"
   },
