@@ -65,7 +65,7 @@
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 20
 - MongoDB
 - npm or yarn
 
