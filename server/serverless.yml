@@ -4,20 +4,23 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: ap-southeast-1
-  environment:
-    MONGODB_URI: ${env:MONGODB_URI}
-    CORS_ORIGIN: ${env:CORS_ORIGIN}
   httpApi:
     cors:
       allowedOrigins:
         - https://she-timetracker.vercel.app
-      allowCredentials: true
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
       allowedHeaders:
         - Content-Type
         - Authorization
         - X-Requested-With
         - Accept
         - Origin
+      allowCredentials: true
 
 functions:
   app:
@@ -30,6 +33,3 @@ package:
     - dist/**
     - node_modules/**
     - package.json 
-
-plugins:
-    - serverless-dotenv-plugin

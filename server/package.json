@@ -12,7 +12,7 @@
     "dev": "nodemon",
     "build": "tsc",
     "watch": "tsc -w",
-    "deploy": "dotenv -e .env -- serverless deploy"
+    "deploy": "serverless deploy"
   },
   "dependencies": {
     "@types/xlsx": "^0.0.35",
