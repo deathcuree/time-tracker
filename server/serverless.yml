@@ -10,7 +10,7 @@ provider:
   httpApi:
     cors:
       allowedOrigins:
-        - ${env:CORS_ORIGIN}
+        - https://she-timetracker.vercel.app
       allowCredentials: true
       allowedHeaders:
         - Content-Type
