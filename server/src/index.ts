@@ -25,6 +25,12 @@ app.use(express.json());
 app.use(cookieParser() as any);
 app.use(morgan('combined'));
 
+// Proper CORS with credentials and exposed headers for downloads
+app.use(cors({
+  origin: (CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(Boolean),
+  credentials: true,
+  exposedHeaders: ['Content-Disposition'],
+}));
 app.use('/api/auth', authRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/pto', ptoRoutes);
@@ -58,7 +64,13 @@ const connectDB = async () => {
 const handler = async (event: any, context: any) => {
   context.callbackWaitsForEmptyEventLoop = false;
   await connectDB();
-  const serverlessHandler = serverless(app);
+  // Ensure binary responses (e.g., Excel .xlsx) are encoded correctly through API Gateway
+  const serverlessHandler = serverless(app, {
+    binary: [
+      'application/octet-stream',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ]
+  });
   return serverlessHandler(event, context);
 };
 

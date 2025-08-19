@@ -5,6 +5,7 @@ provider:
   runtime: nodejs20.x
   region: ap-southeast-1
   httpApi:
+    payloadFormatVersion: 2.0
     cors:
       allowedOrigins:
         - https://she-timetracker.vercel.app
@@ -12,6 +13,7 @@ provider:
         - GET
         - POST
         - PUT
+        - PATCH
         - DELETE
         - OPTIONS
       allowedHeaders:
@@ -20,6 +22,8 @@ provider:
         - X-Requested-With
         - Accept
         - Origin
+      exposedResponseHeaders:
+        - Content-Disposition
       allowCredentials: true
 
 functions:
@@ -32,4 +36,4 @@ package:
   patterns:
     - dist/**
     - node_modules/**
-    - package.json 
+    - package.json
