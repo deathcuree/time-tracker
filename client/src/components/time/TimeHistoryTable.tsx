@@ -4,31 +4,11 @@ import { format, parseISO, differenceInMinutes } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { MonthYearFilter } from './MonthYearFilter';
+import { StatusFilter } from './StatusFilter';
 
 const ITEMS_PER_PAGE = 10;
-const MONTHS = [
-  { value: 0, label: 'January' },
-  { value: 1, label: 'February' },
-  { value: 2, label: 'March' },
-  { value: 3, label: 'April' },
-  { value: 4, label: 'May' },
-  { value: 5, label: 'June' },
-  { value: 6, label: 'July' },
-  { value: 7, label: 'August' },
-  { value: 8, label: 'September' },
-  { value: 9, label: 'October' },
-  { value: 10, label: 'November' },
-  { value: 11, label: 'December' }
-];
 
-// Memoized table row component
 const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
   const formatTime = (time: string | null): string => {
     if (!time) return 'N/A';
@@ -80,17 +60,6 @@ export const TimeHistoryTable: React.FC = () => {
     page: 1
   });
 
-  // Get available months for the current year
-  const getAvailableMonths = () => {
-    const months = [...MONTHS];
-    if (currentFilters.year === currentYear) {
-      // If current year, only show months up to current month
-      return months.slice(0, currentMonth + 1).reverse();
-    }
-    return months.reverse(); // Show all months for past years
-  };
-
-  // Fetch entries with current filters
   const loadEntries = useCallback(() => {
     fetchEntries({
       month: currentFilters.month,
@@ -101,10 +70,9 @@ export const TimeHistoryTable: React.FC = () => {
     });
   }, [currentFilters, fetchEntries]);
 
-  // Load entries only when filters change
   useEffect(() => {
     loadEntries();
-  }, [currentFilters]); // Only depend on currentFilters, not loadEntries
+  }, [currentFilters]);
 
   if (isLoading && entries.length === 0) {
     return (
@@ -122,47 +90,30 @@ export const TimeHistoryTable: React.FC = () => {
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-4 mb-4">
-          <Select
-            value={currentFilters.month.toString()}
-            onValueChange={(value) => {
+          <MonthYearFilter
+            year={currentFilters.year}
+            month={currentFilters.month}
+            startYear={2025}
+            onChange={({ year, month }) =>
               setCurrentFilters(prev => ({
                 ...prev,
-                month: parseInt(value),
-                page: 1
-              }));
-            }}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Select month" />
-            </SelectTrigger>
-            <SelectContent>
-              {getAvailableMonths().map((month) => (
-                <SelectItem key={month.value} value={month.value.toString()}>
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                ...(year !== undefined ? { year } : {}),
+                ...(month !== undefined ? { month } : {}),
+                page: 1,
+              }))
+            }
+          />
 
-          <Select
+          <StatusFilter
             value={currentFilters.status}
-            onValueChange={(value: 'all' | 'active' | 'completed') => {
+            onChange={(value) =>
               setCurrentFilters(prev => ({
                 ...prev,
                 status: value,
                 page: 1
-              }));
-            }}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Entries</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
+              }))
+            }
+          />
         </div>
         
         <div className="rounded-md border">
