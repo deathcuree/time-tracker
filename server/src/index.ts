@@ -45,14 +45,16 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 let isConnected = false;
 const connectDB = async () => {
   if (isConnected || mongoose.connection.readyState === 1) return;
-  await mongoose.connect(MONGODB_URI, { dbName: 'TimeTrackerDB', autoCreate: true });
-  isConnected = true;
-  const dbName = mongoose.connection?.db?.databaseName;
-  console.log(`Connected to database: ${dbName}`);
-  if (dbName !== 'TimeTrackerDB') {
-    throw new Error('Connected to wrong database! Please check your connection string.');
+
+  try {
+    await mongoose.connect(MONGODB_URI);
+    isConnected = true;
+    const dbName = mongoose.connection?.db?.databaseName;
+    console.log(`Connected to database: ${dbName}`);
+  } catch (err) {
+    console.error('MongoDB connection error:', err);
+    throw err;
   }
-  console.log('Successfully connected to MongoDB.');
 };
 
 const handler = async (event: any, context: any) => {
