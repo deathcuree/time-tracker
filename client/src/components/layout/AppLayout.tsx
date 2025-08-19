@@ -51,7 +51,6 @@ export const AppLayout = () => {
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   
-  // If still loading, show a loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -63,26 +62,26 @@ export const AppLayout = () => {
     );
   }
   
-  // If not authenticated, redirect to login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   
-  const commonMenuItems: MenuItem[] = [
+  const userMenuItems: MenuItem[] = [
     { title: 'Dashboard', path: '/dashboard', icon: Clock },
     { title: 'Time History', path: '/time-history', icon: Calendar },
     { title: 'PTO Requests', path: '/pto-requests', icon: User },
-    { title: 'Account', path: '/account', icon: Settings },
   ];
+
+  const accountMenuItem: MenuItem = { title: 'Account Settings', path: '/account', icon: Settings };
   
   const adminMenuItems: MenuItem[] = [
     { title: 'Admin Dashboard', path: '/admin', icon: Settings },
     { title: 'User Management', path: '/admin/users', icon: Users },
   ];
   
-  const menuItems = user?.role === 'admin' 
-    ? [...commonMenuItems, ...adminMenuItems] 
-    : commonMenuItems;
+  const menuItems = user?.role === 'admin'
+    ? [...adminMenuItems, accountMenuItem]
+    : [...userMenuItems, accountMenuItem];
 
   return (
     <SidebarProvider>
