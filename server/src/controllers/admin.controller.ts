@@ -219,14 +219,21 @@ export const exportTableData = async (
     const ws = XLSX.utils.json_to_sheet(rows, { header: ['Employee', 'Date', 'Hours', 'Reason', 'Status'] });
     XLSX.utils.book_append_sheet(wb, ws, 'Export');
 
-    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    // Write as a Node Buffer; serverless-http will base64-encode for binary responses
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' }) as Buffer;
 
     const today = new Date().toISOString().slice(0, 10);
     const filename = `table-export-${today}.xlsx`;
 
+    // Set precise XLSX content type and instruct intermediaries not to transform the body
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.status(200).send(buffer);
+    res.setHeader('Content-Transfer-Encoding', 'binary');
+    res.setHeader('Cache-Control', 'no-store, no-transform');
+    res.setHeader('Pragma', 'no-cache');
+
+    // End with the raw buffer to avoid any implicit transformations
+    res.status(200).end(buffer);
   } catch (error) {
     res.status(500).json({ message: 'Failed to export data', error: (error as Error).message });
   }
