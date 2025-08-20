@@ -91,12 +91,21 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
     setSearchInputValue(newValue);
     if (newValue === '') {
       navigate('.', { replace: true });
+      setSearchQuery('');
+      setCurrentPage(1);
       fetchRequests('');
     } else {
+      // Auto-search while typing with debounce, without blocking input
       setIsSearching(true);
+      setSearchQuery(newValue);
+      const params = new URLSearchParams();
+      params.set('search', newValue);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      setSearchParams(params);
       debouncedSearch(newValue);
     }
   };
+
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value as PTOStatus | 'all');
@@ -172,7 +181,7 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
           onFilterChange={handleStatusFilterChange}
           filterOptions={filterOptions}
           filterPlaceholder="Filter by status"
-          disabled={disabled}
+          disabled={false}
           selectDisabled={disabled}
           className="p-0 flex-1"
         />

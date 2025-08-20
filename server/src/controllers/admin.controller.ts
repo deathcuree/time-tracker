@@ -238,3 +238,165 @@ export const exportTableData = async (
     res.status(500).json({ message: 'Failed to export data', error: (error as Error).message });
   }
 };
+// Admin Time Logs - list entries across users with search, filters, and pagination
+export const getTimeLogs = async (
+  req: Request<{}, {}, {}, {
+    search?: string;
+    status?: 'all' | 'active' | 'completed';
+    month?: string;
+    year?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: string;
+    limit?: string;
+  }>,
+  res: Response
+): Promise<void> => {
+  try {
+    const {
+      search = '',
+      status = 'all',
+      month,
+      year,
+      startDate,
+      endDate,
+      page = '1',
+      limit = '10',
+    } = req.query;
+
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build base match from date range and status
+    const match: any = {};
+
+    // Date filter preference: month/year -> start/end -> none
+    let rangeStart: Date | undefined;
+    let rangeEnd: Date | undefined;
+
+    if (year !== undefined && month !== undefined) {
+      // month expected 0-based (JS month index), consistent with existing client MonthYearFilter
+      const y = Number(year);
+      const m = Number(month);
+      rangeStart = new Date(y, m, 1, 0, 0, 0, 0);
+      // last day of month at 23:59:59.999
+      rangeEnd = new Date(y, m + 1, 0, 23, 59, 59, 999);
+    } else if (startDate && endDate) {
+      rangeStart = new Date(startDate);
+      rangeEnd = new Date(endDate);
+    }
+
+    if (rangeStart && rangeEnd) {
+      match.date = { $gte: rangeStart, $lte: rangeEnd };
+    }
+
+    if (status === 'active') {
+      match.clockOut = null;
+    } else if (status === 'completed') {
+      match.clockOut = { $ne: null };
+    }
+
+    const pipeline: any[] = [
+      { $match: match },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' }
+    ];
+
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const searchStr = search.trim();
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'user.firstName': { $regex: searchStr, $options: 'i' } },
+            { 'user.lastName': { $regex: searchStr, $options: 'i' } },
+            { 'user.email': { $regex: searchStr, $options: 'i' } },
+            {
+              $expr: {
+                $regexMatch: {
+                  input: { $dateToString: { date: '$date', format: '%Y-%m-%d' } },
+                  regex: searchStr,
+                  options: 'i'
+                }
+              }
+            }
+          ]
+        }
+      });
+    }
+
+    pipeline.push(
+      { $sort: { date: -1, clockIn: -1 } },
+      {
+        $facet: {
+          items: [
+            { $skip: skip },
+            { $limit: limitNum },
+            {
+              $project: {
+                _id: 1,
+                date: 1,
+                clockIn: 1,
+                clockOut: 1,
+                user: {
+                  _id: '$user._id',
+                  firstName: '$user.firstName',
+                  lastName: '$user.lastName',
+                  email: '$user.email'
+                },
+                // Compute working hours up to now for active entries, round to 2 decimals
+                hours: {
+                  $round: [
+                    {
+                      $divide: [
+                        {
+                          $subtract: [
+                            {
+                              $cond: [{ $eq: ['$clockOut', null] }, '$$NOW', '$clockOut']
+                            },
+                            '$clockIn'
+                          ]
+                        },
+                        1000 * 60 * 60
+                      ]
+                    },
+                    2
+                  ]
+                },
+                status: {
+                  $cond: [{ $eq: ['$clockOut', null] }, 'active', 'completed']
+                }
+              }
+            }
+          ],
+          total: [
+            { $count: 'count' }
+          ]
+        }
+      }
+    );
+
+    const aggResult = await TimeEntry.aggregate(pipeline);
+    const items = (aggResult?.[0]?.items ?? []) as any[];
+    const total = Number(aggResult?.[0]?.total?.[0]?.count ?? 0);
+    const pages = Math.max(1, Math.ceil(total / limitNum));
+
+    res.json({
+      items,
+      pagination: {
+        total,
+        page: pageNum,
+        pages
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+  }
+};
