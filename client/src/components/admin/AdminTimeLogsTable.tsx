@@ -171,6 +171,18 @@ export const AdminTimeLogsTable: React.FC = () => {
     }
   };
 
+  // Convert decimal hours to human-readable "X hr(s) Y min(s)"
+  const formatHoursWorked = (hours?: number | null) => {
+    if (typeof hours !== 'number' || isNaN(hours)) return '0 mins';
+    const totalMinutes = Math.round(hours * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const parts: string[] = [];
+    if (h > 0) parts.push(`${h} hr${h === 1 ? '' : 's'}`);
+    if (m > 0) parts.push(`${m} min${m === 1 ? '' : 's'}`);
+    return parts.length > 0 ? parts.join(' ') : '0 mins';
+  };
+
   const filterOptions = [
     { value: 'all', label: 'All Entries' },
     { value: 'active', label: 'Active' },
@@ -258,7 +270,7 @@ export const AdminTimeLogsTable: React.FC = () => {
                     <TableCell className="text-center">{formatDate(item.date)}</TableCell>
                     <TableCell className="text-center">{formatTime(item.clockIn)}</TableCell>
                     <TableCell className="text-center">{formatTime(item.clockOut)}</TableCell>
-                    <TableCell className="text-center">{(item.hours ?? 0).toFixed(2)}h</TableCell>
+                    <TableCell className="text-center">{formatHoursWorked(item.hours)}</TableCell>
                     <TableCell className="text-center">
                       <StatusBadge status={item.status} />
                     </TableCell>
