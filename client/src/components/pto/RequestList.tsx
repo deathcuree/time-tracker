@@ -31,6 +31,13 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
   const [searchInputValue, setSearchInputValue] = useState('');
   const [statusFilter, setStatusFilter] = useState<PTOStatus | 'all'>('all');
   const [isSearching, setIsSearching] = useState(false);
+  // Force skeleton-first render on initial mount
+  const [uiLoading, setUiLoading] = useState(true);
+  useEffect(() => {
+    if (!isLoading) {
+      setUiLoading(false);
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     const clearSearchAndUrl = () => {
@@ -181,7 +188,7 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
           onFilterChange={handleStatusFilterChange}
           filterOptions={filterOptions}
           filterPlaceholder="Filter by status"
-          disabled={false}
+          disabled={disabled}
           selectDisabled={disabled}
           className="p-0 flex-1"
         />
@@ -201,7 +208,7 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
   const headerColsBase = 4;
   const headerCols = headerColsBase + (showUserInfo ? 1 : 0) + (isAdmin ? 1 : 0);
 
-  if (isLoading || isSearching) {
+  if (isLoading || isSearching || uiLoading) {
     return (
       <Card>
         {renderToolbar(true)}
