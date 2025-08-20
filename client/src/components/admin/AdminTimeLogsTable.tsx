@@ -5,9 +5,10 @@ import { SearchWithFilterBar } from '@/components/shared/SearchWithFilterBar';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Pagination } from '@/components/shared/Pagination';
 import { MonthYearFilter } from '@/components/time/MonthYearFilter';
-import adminApi, { TimeLogItem, AdminTimeStatus, TimeLogsResponse } from '@/lib/api/admin';
+import adminApi, { TimeLogItem, AdminTimeStatus, TimeLogsResponse, TimeLogsParams } from '@/lib/api/admin';
 import { format, parseISO } from 'date-fns';
 import { TableRowSkeleton } from '@/components/shared/TableRowSkeleton';
+import ExportButton from '@/components/shared/ExportButton';
 import { toast } from '@/components/ui/sonner';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { debounce } from 'lodash';
@@ -190,18 +191,34 @@ export const AdminTimeLogsTable: React.FC = () => {
           />
         </div>
 
-        <SearchWithFilterBar
-          searchValue={searchInputValue}
-          onSearchChange={handleSearchChange}
-          searchPlaceholder="Search name, email, or date (YYYY-MM-DD)"
-          filterValue={status}
-          onFilterChange={handleStatusChange}
-          filterOptions={filterOptions}
-          filterPlaceholder="Status"
-          disabled={isLoading}
-          selectDisabled={isLoading}
-          className="p-0 w-full md:w-auto"
-        />
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <SearchWithFilterBar
+            searchValue={searchInputValue}
+            onSearchChange={handleSearchChange}
+            searchPlaceholder="Search"
+            filterValue={status}
+            onFilterChange={handleStatusChange}
+            filterOptions={filterOptions}
+            filterPlaceholder="Status"
+            disabled={isLoading}
+            selectDisabled={isLoading}
+            className="p-0 w-full md:w-auto"
+          />
+
+          <ExportButton<TimeLogsParams>
+            exporter={adminApi.exportTimeLogs}
+            params={{
+              search: searchQuery || undefined,
+              status,
+              month,
+              year,
+            }}
+            disabled={isBusy}
+            label="Export"
+            size="sm"
+            
+          />
+        </div>
       </div>
 
       <CardContent>

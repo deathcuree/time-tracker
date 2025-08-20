@@ -4,8 +4,11 @@ import { Download, Loader2 } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import adminApi, { ExportParams } from '@/lib/api/admin';
 
-export interface ExportButtonProps {
-  params?: ExportParams;
+type ExporterFn<P> = (params?: P) => Promise<{ blob: Blob; filename: string }>;
+
+export interface ExportButtonProps<P = ExportParams> {
+  params?: P;
+  exporter?: ExporterFn<P>;
   disabled?: boolean;
   className?: string;
   label?: string;
@@ -13,20 +16,23 @@ export interface ExportButtonProps {
   variant?: React.ComponentProps<typeof Button>['variant'];
 }
 
-export const ExportButton: React.FC<ExportButtonProps> = ({
+export function ExportButton<P = ExportParams>({
   params,
+  exporter,
   disabled = false,
   className,
   label = 'Export',
   size = 'sm',
   variant = 'default',
-}) => {
+}: ExportButtonProps<P>) {
   const [loading, setLoading] = React.useState(false);
 
   const handleExport = async () => {
     try {
       setLoading(true);
-      const { blob, filename } = await adminApi.exportTableData({ ...(params ?? {}), pagination: false });
+      const fn: ExporterFn<P> =
+        (exporter as ExporterFn<P>) ?? ((adminApi.exportTableData as unknown) as ExporterFn<P>);
+      const { blob, filename } = await fn(params);
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -58,6 +64,6 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       {label}
     </Button>
   );
-};
+}
 
 export default ExportButton;

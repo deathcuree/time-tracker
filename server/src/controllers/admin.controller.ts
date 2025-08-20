@@ -400,3 +400,177 @@ export const getTimeLogs = async (
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
+// Export all matching time logs to Excel (no pagination)
+export const exportTimeLogs = async (
+  req: Request<{}, {}, {}, {
+    search?: string;
+    status?: 'all' | 'active' | 'completed';
+    month?: string;
+    year?: string;
+    startDate?: string;
+    endDate?: string;
+  }>,
+  res: Response
+): Promise<void> => {
+  try {
+    const {
+      search = '',
+      status = 'all',
+      month,
+      year,
+      startDate,
+      endDate,
+    } = req.query;
+
+    // Build base match from date range and status
+    const match: any = {};
+
+    // Date filter preference: month/year -> start/end -> none
+    let rangeStart: Date | undefined;
+    let rangeEnd: Date | undefined;
+
+    if (year !== undefined && month !== undefined) {
+      // month expected 0-based (JS month index), consistent with existing client MonthYearFilter
+      const y = Number(year);
+      const m = Number(month);
+      rangeStart = new Date(y, m, 1, 0, 0, 0, 0);
+      // last day of month at 23:59:59.999
+      rangeEnd = new Date(y, m + 1, 0, 23, 59, 59, 999);
+    } else if (startDate && endDate) {
+      rangeStart = new Date(startDate);
+      rangeEnd = new Date(endDate);
+    }
+
+    if (rangeStart && rangeEnd) {
+      match.date = { $gte: rangeStart, $lte: rangeEnd };
+    }
+
+    if (status === 'active') {
+      match.clockOut = null;
+    } else if (status === 'completed') {
+      match.clockOut = { $ne: null };
+    }
+
+    const pipeline: any[] = [
+      { $match: match },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' }
+    ];
+
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const searchStr = search.trim();
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'user.firstName': { $regex: searchStr, $options: 'i' } },
+            { 'user.lastName': { $regex: searchStr, $options: 'i' } },
+            { 'user.email': { $regex: searchStr, $options: 'i' } },
+            {
+              $expr: {
+                $regexMatch: {
+                  input: { $dateToString: { date: '$date', format: '%Y-%m-%d' } },
+                  regex: searchStr,
+                  options: 'i'
+                }
+              }
+            }
+          ]
+        }
+      });
+    }
+
+    pipeline.push(
+      { $sort: { date: -1, clockIn: -1 } },
+      {
+        $project: {
+          _id: 1,
+          date: 1,
+          clockIn: 1,
+          clockOut: 1,
+          user: {
+            _id: '$user._id',
+            firstName: '$user.firstName',
+            lastName: '$user.lastName',
+            email: '$user.email'
+          },
+          hours: {
+            $round: [
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      {
+                        $cond: [{ $eq: ['$clockOut', null] }, '$$NOW', '$clockOut']
+                      },
+                      '$clockIn'
+                    ]
+                  },
+                  1000 * 60 * 60
+                ]
+              },
+              2
+            ]
+          },
+          status: {
+            $cond: [{ $eq: ['$clockOut', null] }, 'active', 'completed']
+          }
+        }
+      }
+    );
+
+    const items = await TimeEntry.aggregate(pipeline);
+
+    // Build rows for Excel
+    const rows = items.map((item: any) => {
+      const name = `${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}`.trim();
+      const formatDate = (d: Date) => new Date(d).toISOString().slice(0, 10); // YYYY-MM-DD
+      const formatTime = (d?: Date | null) => (d ? new Date(d).toISOString().slice(11, 16) : ''); // HH:mm (UTC)
+      return {
+        Employee: name,
+        Email: item.user?.email ?? '',
+        Date: item.date ? formatDate(item.date) : '',
+        'Clock In': item.clockIn ? formatTime(item.clockIn) : '',
+        'Clock Out': item.clockOut ? formatTime(item.clockOut) : '',
+        Hours: typeof item.hours === 'number' ? item.hours : 0,
+        Status: String(item.status || '').charAt(0).toUpperCase() + String(item.status || '').slice(1),
+      };
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows, { header: ['Employee', 'Email', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Status'] });
+    XLSX.utils.book_append_sheet(wb, ws, 'Time Logs');
+
+    // Write as a Node Buffer; serverless-http will base64-encode for binary responses
+    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' }) as Buffer;
+
+    // Prefer specific month/year filename when available
+    let filename: string;
+    if (year !== undefined && month !== undefined) {
+      const y = Number(year);
+      const m = Number(month) + 1;
+      filename = `time-logs-${y}-${String(m).padStart(2, '0')}.xlsx`;
+    } else {
+      const today = new Date().toISOString().slice(0, 10);
+      filename = `time-logs-${today}.xlsx`;
+    }
+
+    // Set precise XLSX content type and instruct intermediaries not to transform the body
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Transfer-Encoding', 'binary');
+    res.setHeader('Cache-Control', 'no-store, no-transform');
+    res.setHeader('Pragma', 'no-cache');
+
+    // End with the raw buffer to avoid any implicit transformations
+    res.status(200).end(buffer);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to export time logs', error: (error as Error).message });
+  }
+};

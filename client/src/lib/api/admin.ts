@@ -69,6 +69,32 @@ export const adminApi = {
     return { blob: response.data as Blob, filename };
   },
 
+  exportTimeLogs: async (params: TimeLogsParams = {}): Promise<{ blob: Blob; filename: string }> => {
+    const finalParams: any = {};
+    if (params.search) finalParams.search = params.search;
+    if (params.status) finalParams.status = params.status;
+    if (typeof params.month === 'number') finalParams.month = String(params.month);
+    if (typeof params.year === 'number') finalParams.year = String(params.year);
+    if (params.startDate) finalParams.startDate = params.startDate;
+    if (params.endDate) finalParams.endDate = params.endDate;
+
+    const response = await axiosInstance.get('/admin/time/logs/export', {
+      params: finalParams,
+      responseType: 'blob',
+    });
+
+    const disposition = (response.headers as any)['content-disposition'] || (response.headers as any)['Content-Disposition'];
+    let filename = `time-logs-${new Date().toISOString().slice(0,10)}.xlsx`;
+    if (disposition) {
+      const match = /filename\*?=(?:UTF-8''|")?([^;"]+)/i.exec(disposition);
+      if (match && match[1]) {
+        filename = decodeURIComponent(match[1].replace(/"/g, ''));
+      }
+    }
+
+    return { blob: response.data as Blob, filename };
+  },
+
   getTimeLogs: async (params: TimeLogsParams = {}): Promise<TimeLogsResponse> => {
     const finalParams: any = {};
     if (params.search) finalParams.search = params.search;
