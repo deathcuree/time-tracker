@@ -14,6 +14,7 @@ import TimeHistoryPage from "./pages/TimeHistoryPage";
 import PTORequestsPage from "./pages/PTORequestsPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import UserManagementPage from "./pages/UserManagementPage";
+import AdminTimeLogsPage from "./pages/AdminTimeLogsPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import AccountPage from "./pages/AccountPage";
@@ -40,6 +41,7 @@ const AppRoutes = () => {
         
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/admin/time-logs" element={<AdminTimeLogsPage />} />
           <Route path="/admin/users" element={<UserManagementPage />} />
         </Route>
       </Route>

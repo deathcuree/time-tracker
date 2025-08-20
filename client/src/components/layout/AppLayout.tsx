@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { NavLink, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from '@/components/ui/sidebar';
-import { Clock, Calendar, User, LogOut, Settings, Sun, Moon, Users, Menu, ClipboardCheck } from 'lucide-react';
+import { Clock, Calendar, User, LogOut, Settings, Sun, Moon, Users, Menu, ClipboardCheck, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
@@ -70,6 +70,7 @@ export const AppLayout = () => {
   
   const adminMenuItems: MenuItem[] = [
     { title: 'Approve PTO', path: '/admin', icon: ClipboardCheck },
+    { title: 'Time Logs', path: '/admin/time-logs', icon: History },
     { title: 'Create User', path: '/admin/users', icon: Users },
   ];
   
