@@ -31,7 +31,6 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
   const [searchInputValue, setSearchInputValue] = useState('');
   const [statusFilter, setStatusFilter] = useState<PTOStatus | 'all'>('all');
   const [isSearching, setIsSearching] = useState(false);
-  // Force skeleton-first render on initial mount
   const [uiLoading, setUiLoading] = useState(true);
   useEffect(() => {
     if (!isLoading) {
@@ -102,7 +101,6 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
       setCurrentPage(1);
       fetchRequests('');
     } else {
-      // Auto-search while typing with debounce, without blocking input
       setIsSearching(true);
       setSearchQuery(newValue);
       const params = new URLSearchParams();
