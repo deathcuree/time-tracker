@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { SearchWithFilterBar } from '@/components/shared/SearchWithFilterBar';
+import { SearchInput } from '@/components/shared/SearchInput';
+import { FilterSelect } from '@/components/shared/FilterSelect';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Pagination } from '@/components/shared/Pagination';
 import { MonthYearFilter } from '@/components/time/MonthYearFilter';
@@ -122,17 +123,6 @@ export const AdminTimeLogsTable: React.FC = () => {
     }
   };
 
-  const handleSearchSubmit = (value: string) => {
-    setIsSearching(true);
-    setSearchQuery(value);
-    setPage(1);
-    const params = new URLSearchParams();
-    if (value) params.set('search', value);
-    if (status !== 'all') params.set('status', status);
-    setSearchParams(params);
-    load({ search: value, page: 1 }).catch(() => {});
-  };
-
   const handleStatusChange = (value: string) => {
     const next = (value as AdminTimeStatus) || 'all';
     setStatus(next);
@@ -203,18 +193,21 @@ export const AdminTimeLogsTable: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <SearchWithFilterBar
-            searchValue={searchInputValue}
-            onSearchChange={handleSearchChange}
-            searchPlaceholder="Search"
-            filterValue={status}
-            onFilterChange={handleStatusChange}
-            filterOptions={filterOptions}
-            filterPlaceholder="Status"
-            disabled={isLoading}
-            selectDisabled={isLoading}
-            className="p-0 w-full md:w-auto"
-          />
+          <div className="flex w-full items-center gap-4">
+            <SearchInput
+              value={searchInputValue}
+              onChange={handleSearchChange}
+              placeholder="Search"
+              className="p-0 w-full md:w-auto"
+            />
+            <FilterSelect
+              value={status}
+              onChange={handleStatusChange}
+              options={filterOptions}
+              placeholder="Status"
+              disabled={isLoading}
+            />
+          </div>
 
           <ExportButton<TimeLogsParams>
             exporter={adminApi.exportTimeLogs}
