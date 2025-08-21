@@ -218,3 +218,42 @@ body.login {
   overflow: hidden !important;
   height: 100svh;
 }
+
+@layer utilities {
+  /* Dark-mode remapping for hard-coded slate/gray text utilities to theme tokens.
+     This fixes labels and descriptive copy that were using fixed light palette classes
+     without editing files one-by-one. The more specific ".dark .text-*" selectors
+     override Tailwind's base utilities in dark mode only. */
+
+  /* Strong text -> foreground in dark mode */
+  .dark .text-gray-900,
+  .dark .text-gray-800,
+  .dark .text-slate-900,
+  .dark .text-slate-800,
+  .dark .text-zinc-900,
+  .dark .text-zinc-800 {
+    @apply text-foreground;
+  }
+
+  /* Secondary/descriptive text -> muted-foreground in dark mode */
+  .dark .text-gray-700,
+  .dark .text-gray-600,
+  .dark .text-slate-700,
+  .dark .text-slate-600,
+  .dark .text-zinc-700,
+  .dark .text-zinc-600 {
+    @apply text-muted-foreground;
+  }
+}
+
+@layer utilities {
+  /* Extend mapping to include 500/400 neutrals -> muted-foreground in dark mode */
+  .dark .text-gray-500,
+  .dark .text-slate-500,
+  .dark .text-zinc-500,
+  .dark .text-gray-400,
+  .dark .text-slate-400,
+  .dark .text-zinc-400 {
+    @apply text-muted-foreground;
+  }
+}
