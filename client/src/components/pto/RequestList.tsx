@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePTO, PTORequest, PTOStatus } from '@/contexts/PTOContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { debounce } from 'lodash';
-import { SearchWithFilterBar } from '@/components/shared/SearchWithFilterBar';
+import { SearchInput } from '@/components/shared/SearchInput';
+import { FilterSelect } from '@/components/shared/FilterSelect';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Pagination } from '@/components/shared/Pagination';
 import { TableRowSkeleton } from '@/components/shared/TableRowSkeleton';
@@ -25,13 +26,13 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const isInitialMount = React.useRef(true);
-
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInputValue, setSearchInputValue] = useState('');
   const [statusFilter, setStatusFilter] = useState<PTOStatus | 'all'>('all');
   const [isSearching, setIsSearching] = useState(false);
   const [uiLoading, setUiLoading] = useState(true);
+  
   useEffect(() => {
     if (!isLoading) {
       setUiLoading(false);
@@ -46,24 +47,28 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
       navigate('.', { replace: true });
     };
 
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      if (!document.referrer) {
-        clearSearchAndUrl();
-      } else {
-        const searchFromUrl = searchParams.get('search');
-        const statusFromUrl = searchParams.get('status') as PTOStatus | 'all';
-        if (searchFromUrl) {
-          setSearchQuery(searchFromUrl);
-          setSearchInputValue(searchFromUrl);
-          setIsSearching(true);
-          debouncedSearch(searchFromUrl);
-        }
-        if (statusFromUrl) {
-          setStatusFilter(statusFromUrl);
-        }
-      }
+    // Initialize from URL params if present; do not clear on mount
+    const searchFromUrl = searchParams.get('search');
+    const statusFromUrl = searchParams.get('status') as PTOStatus | 'all' | null;
+
+    if (searchFromUrl) {
+      setSearchQuery(searchFromUrl);
+      setSearchInputValue(searchFromUrl);
+      setIsSearching(true);
+      debouncedSearch(searchFromUrl);
     }
+
+    if (
+      statusFromUrl === 'pending' ||
+      statusFromUrl === 'approved' ||
+      statusFromUrl === 'denied' ||
+      statusFromUrl === 'all'
+    ) {
+      setStatusFilter(statusFromUrl);
+    }
+
+    // Mark initial mount complete so later effects can sync URL without clearing state
+    isInitialMount.current = false;
 
     const handleBeforeUnload = () => {
       clearSearchAndUrl();
@@ -96,13 +101,16 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
   const handleSearchChange = (newValue: string) => {
     setSearchInputValue(newValue);
     if (newValue === '') {
-      navigate('.', { replace: true });
+      setIsSearching(true);
       setSearchQuery('');
       setCurrentPage(1);
-      fetchRequests('');
+      navigate('.', { replace: true });
+      fetchRequests('')
+        .finally(() => {
+          setIsSearching(false);
+        });
     } else {
       setIsSearching(true);
-      setSearchQuery(newValue);
       const params = new URLSearchParams();
       params.set('search', newValue);
       if (statusFilter !== 'all') params.set('status', statusFilter);
@@ -178,18 +186,21 @@ export const RequestList: React.FC<RequestListProps> = ({ showUserInfo = false }
 
     return (
       <div className="flex items-center justify-between p-4 gap-4 flex-col sm:flex-row">
-        <SearchWithFilterBar
-          searchValue={searchInputValue}
-          onSearchChange={handleSearchChange}
-          searchPlaceholder="Search"
-          filterValue={statusFilter}
-          onFilterChange={handleStatusFilterChange}
-          filterOptions={filterOptions}
-          filterPlaceholder="Filter by status"
-          disabled={disabled}
-          selectDisabled={disabled}
-          className="p-0 flex-1"
-        />
+        <div className="flex w-full items-center gap-4">
+          <SearchInput
+            value={searchInputValue}
+            onChange={handleSearchChange}
+            placeholder="Search"
+            className="p-0 flex-1"
+          />
+          <FilterSelect
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            options={filterOptions}
+            placeholder="Filter by status"
+            disabled={disabled}
+          />
+        </div>
         {isAdminLocal && (
           <ExportButton
             params={{ search: searchQuery || undefined, status: statusFilter }}
