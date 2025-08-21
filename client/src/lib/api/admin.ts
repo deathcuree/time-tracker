@@ -17,6 +17,7 @@ export interface TimeLogsParams {
   year?: number;
   startDate?: string;
   endDate?: string;
+  tzOffset?: string;
   page?: number;
   limit?: number;
 }
@@ -77,6 +78,8 @@ export const adminApi = {
     if (typeof params.year === 'number') finalParams.year = String(params.year);
     if (params.startDate) finalParams.startDate = params.startDate;
     if (params.endDate) finalParams.endDate = params.endDate;
+    // Ensure backend can mirror frontend timezone formatting
+    finalParams.tzOffset = String(new Date().getTimezoneOffset());
 
     const response = await axiosInstance.get('/admin/time/logs/export', {
       params: finalParams,

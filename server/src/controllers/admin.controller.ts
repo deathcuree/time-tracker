@@ -409,6 +409,7 @@ export const exportTimeLogs = async (
     year?: string;
     startDate?: string;
     endDate?: string;
+    tzOffset?: string;
   }>,
   res: Response
 ): Promise<void> => {
@@ -420,8 +421,46 @@ export const exportTimeLogs = async (
       year,
       startDate,
       endDate,
+      tzOffset,
     } = req.query;
 
+    // Timezone-aware formatters to mirror frontend display
+    const tzOffsetMinutes = Number(tzOffset ?? '0');
+    const toLocal = (d?: Date | null) => {
+      if (!d) return null;
+      const ms = new Date(d).getTime();
+      return new Date(ms - tzOffsetMinutes * 60 * 1000);
+    };
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const formatDateLocal = (d?: Date | null) => {
+      if (!d) return '';
+      const ld = toLocal(d)!;
+      const yyyy = ld.getUTCFullYear();
+      const mmm = monthNames[ld.getUTCMonth()];
+      const dd = String(ld.getUTCDate()).padStart(2,'0');
+      return `${mmm} ${dd}, ${yyyy}`;
+    };
+    const formatTimeLocal = (d?: Date | null) => {
+      if (!d) return '';
+      const ld = toLocal(d)!;
+      let hours = ld.getUTCHours();
+      const minutes = ld.getUTCMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      if (hours === 0) hours = 12;
+      const mm = String(minutes).padStart(2,'0');
+      return `${hours}:${mm} ${ampm}`;
+    };
+    const formatHoursWorked = (hours?: number | null) => {
+      if (typeof hours !== 'number' || isNaN(hours)) return '0 mins';
+      const totalMinutes = Math.round(hours * 60);
+      const h = Math.floor(totalMinutes / 60);
+      const m = totalMinutes % 60;
+      const parts: string[] = [];
+      if (h > 0) parts.push(`${h} hr${h === 1 ? '' : 's'}`);
+      if (m > 0) parts.push(`${m} min${m === 1 ? '' : 's'}`);
+      return parts.length > 0 ? parts.join(' ') : '0 mins';
+    };
     // Build base match from date range and status
     const match: any = {};
 
@@ -530,21 +569,19 @@ export const exportTimeLogs = async (
     // Build rows for Excel
     const rows = items.map((item: any) => {
       const name = `${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}`.trim();
-      const formatDate = (d: Date) => new Date(d).toISOString().slice(0, 10); // YYYY-MM-DD
-      const formatTime = (d?: Date | null) => (d ? new Date(d).toISOString().slice(11, 16) : ''); // HH:mm (UTC)
       return {
         Employee: name,
         Email: item.user?.email ?? '',
-        Date: item.date ? formatDate(item.date) : '',
-        'Clock In': item.clockIn ? formatTime(item.clockIn) : '',
-        'Clock Out': item.clockOut ? formatTime(item.clockOut) : '',
-        Hours: typeof item.hours === 'number' ? item.hours : 0,
+        Date: item.date ? formatDateLocal(item.date) : '',
+        'Clock In': item.clockIn ? formatTimeLocal(item.clockIn) : '',
+        'Clock Out': item.clockOut ? formatTimeLocal(item.clockOut) : '',
+        'Hours Worked': formatHoursWorked(item.hours),
         Status: String(item.status || '').charAt(0).toUpperCase() + String(item.status || '').slice(1),
       };
     });
 
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows, { header: ['Employee', 'Email', 'Date', 'Clock In', 'Clock Out', 'Hours', 'Status'] });
+    const ws = XLSX.utils.json_to_sheet(rows, { header: ['Employee', 'Email', 'Date', 'Clock In', 'Clock Out', 'Hours Worked', 'Status'] });
     XLSX.utils.book_append_sheet(wb, ws, 'Time Logs');
 
     // Write as a Node Buffer; serverless-http will base64-encode for binary responses
