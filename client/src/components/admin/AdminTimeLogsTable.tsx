@@ -171,7 +171,6 @@ export const AdminTimeLogsTable: React.FC = () => {
     }
   };
 
-  // Convert decimal hours to human-readable "X hr(s) Y min(s)"
   const formatHoursWorked = (hours?: number | null) => {
     if (typeof hours !== 'number' || isNaN(hours)) return '0 mins';
     const totalMinutes = Math.round(hours * 60);
