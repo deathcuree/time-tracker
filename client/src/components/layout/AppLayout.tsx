@@ -79,13 +79,11 @@ export const AppLayout = () => {
     : [...userMenuItems, accountMenuItem];
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <Sidebar 
+    <SidebarProvider style={{ ["--sidebar-width" as any]: "18rem", ["--sidebar-width-icon" as any]: "4rem" }}>
+      <div className="min-h-screen flex w-full min-w-0 bg-background">
+        <Sidebar
           className={cn(
-            "flex-shrink-0 bg-sidebar-background border-r border-sidebar-border transition-[width]",
-            "group-data-[collapsible=icon]:w-16",
-            "w-72"
+            "flex-shrink-0 bg-sidebar-background border-r border-sidebar-border"
           )}
           collapsible="icon"
         >
@@ -100,8 +98,8 @@ export const AppLayout = () => {
                 "group-data-[collapsible=icon]:text-lg",
                 "text-2xl"
               )}>
-                <span className="group-data-[collapsible=icon]:hidden">TimeTracker</span>
-                <span className="hidden group-data-[collapsible=icon]:inline">TT</span>
+                <span className="group-data-[collapsible=icon]:hidden">SHE VIRTUAL ASSISTANCE</span>
+                <span className="hidden group-data-[collapsible=icon]:inline">SHE</span>
               </h1>
             </div>
             
@@ -152,8 +150,8 @@ export const AppLayout = () => {
           </SidebarContent>
         </Sidebar>
         
-        <main className="flex-1 overflow-y-auto">
-          <div className="sticky top-0 z-0 bg-card border-b border-border shadow-sm px-4 py-3">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
+          <div className="sticky top-0 z-10 bg-card border-b border-border shadow-sm px-4 py-3">
             <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
               <div className="flex items-center gap-3">
                 <SidebarTrigger>
