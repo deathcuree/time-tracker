@@ -1,144 +1,35 @@
 # SHE-TIME-TRACKER
 
-*Empower Your Time, Elevate Your Productivity* ⚡
+## Tech Stack
+- Frontend
+  - React 18 + TypeScript
+  - Vite
+  - Tailwind CSS + shadcn/ui (Radix UI)
+  - TanStack Query (React Query)
+  - React Hook Form + Zod
+  - React Router DOM
+  - Recharts, date-fns
+- Backend
+  - Node.js 20 + Express.js
+  - MongoDB + Mongoose
+  - JWT auth (HttpOnly cookie) + bcryptjs
+  - Zod + express-validator
+  - CORS (credentials), cookie-parser, helmet, morgan
+- Infrastructure
+  - AWS Lambda + API Gateway (HTTP API)
+  - serverless-http
+  - Region: ap-southeast-1
+  - Frontend hosting: Vercel
+- Utilities
+  - XLSX (Excel export)
+  - Axios (withCredentials)
 
-![Last Commit](https://img.shields.io/badge/last%20commit-today-brightgreen)
-![TypeScript](https://img.shields.io/badge/typescript-97.8%25-blue)
-![Languages](https://img.shields.io/badge/languages-4-blue)
-
----
-
-## 🚀 Tech Stack
-
-### Frontend
-- 🎨 **UI Framework**: React 18 with TypeScript
-- 🎯 **State Management**: React Query (TanStack Query)
-- 🎭 **Form Handling**: React Hook Form with Zod validation
-- 💅 **Styling**: 
-  - Tailwind CSS with Animations
-  - Radix UI Components
-  - Shadcn UI
-- 📦 **Build Tool**: Vite
-- 📊 **Charts**: Recharts
-- 🔄 **Routing**: React Router DOM
-
-### Backend
-- 🛠️ **Runtime**: Node.js with TypeScript
-- 🌐 **Framework**: Express.js
-- 🗄️ **Database**: MongoDB with Mongoose
-- 🔐 **Authentication**: JWT with bcrypt
-- ✅ **Validation**: Express Validator & Zod
-- 🔄 **API**: RESTful with CORS support
-
----
-
-## 🌟 Features
-
-- 🕒 **Time Tracking**
-  - Real-time clock in/out system
-  - Detailed time logs
-  - Activity monitoring
-
-- 📅 **PTO Management**
-  - Leave request submission
-  - Approval workflow
-  - Calendar integration
-
-- 👥 **User Management**
-  - Role-based access control
-  - Team management
-  - User profiles
-
-- 📊 **Analytics & Reporting**
-  - Time utilization reports
-  - Team performance metrics
-  - Custom report generation
-
-- 🎨 **Modern UI/UX**
-  - Responsive design
-  - Dark/Light theme
-  - Intuitive navigation
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 20
-- MongoDB
-- npm or yarn
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/deathcuree/she-time-tracker
-   cd she-time-tracker
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm run install:all
-   ```
-
-3. **Environment Setup**
-   - Create `.env` files in both client and server directories
-   - Configure necessary environment variables
-
-4. **Start Development Servers**
-   ```bash
-   npm run dev
-   ```
-   This will start both frontend and backend servers concurrently.
-
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:3000
-
----
-
-## 🛠️ Development
-
-### Scripts
-
-- `npm run dev` - Start development servers
-- `npm run client` - Start frontend only
-- `npm run server` - Start backend only
-- `npm run build` - Build for production
-
-### Project Structure
-
-```
-she-time-tracker/
-├── client/               # Frontend application
-│   ├── src/             # Source files
-│   ├── public/          # Static files
-│   └── vite.config.ts   # Vite configuration
-├── server/              # Backend application
-│   ├── src/             # Source files
-│   └── tsconfig.json    # TypeScript configuration
-└── package.json         # Root package.json
-```
-
----
-
-## 📝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## 🤝 Support
-
-For support, email connect@shevirtualassistance.com
-
+## Features
+- Time tracking: clock in/out, active vs. completed status, monthly/date range filters, precise hours computation
+- PTO management: request, approve/deny, search and status filters
+- User management: roles (admin/user), profile update, password change with current-password validation
+- Admin time logs: search, pagination, filters; export all matching logs to Excel
+- Export to Excel: PTO table and Time Logs with correct headers, binary transfer, and timezone-aware formatting
+- Authentication: register/login/logout via JWT in secure HttpOnly cookie (secure, sameSite=none)
+- Security and reliability: Helmet headers, CORS with credentials, validation, structured errors, /health endpoint
+- UI/UX: responsive design, dark/light theme, charts, toasts
