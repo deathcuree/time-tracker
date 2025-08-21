@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MonthYearFilter } from './MonthYearFilter';
 import { StatusFilter } from './StatusFilter';
+import { StatusBadge } from '@/components/shared/StatusBadge';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -28,6 +29,12 @@ const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
     return `${hours}h ${minutes}m`;
   };
 
+  const getStatus = (entry: TimeEntry): 'active' | 'completed' => {
+    const s = (entry as any).status as 'active' | 'completed' | undefined;
+    if (s === 'active' || s === 'completed') return s;
+    return entry.clockOut ? 'completed' : 'active';
+  };
+
   return (
     <TableRow>
       <TableCell>
@@ -42,6 +49,9 @@ const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
         )}
       </TableCell>
       <TableCell>{calculateHoursWorked(entry)}</TableCell>
+      <TableCell className="text-center">
+        <StatusBadge status={getStatus(entry)} />
+      </TableCell>
     </TableRow>
   );
 });
@@ -120,10 +130,11 @@ export const TimeHistoryTable: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/4 text-center">Date</TableHead>
-                <TableHead className="w-1/4 text-center">Clock In</TableHead>
-                <TableHead className="w-1/4 text-center">Clock Out</TableHead>
-                <TableHead className="w-1/4 text-center">Hours Worked</TableHead>
+                <TableHead className="w-1/5 text-center">Date</TableHead>
+                <TableHead className="w-1/5 text-center">Clock In</TableHead>
+                <TableHead className="w-1/5 text-center">Clock Out</TableHead>
+                <TableHead className="w-1/5 text-center">Hours Worked</TableHead>
+                <TableHead className="w-1/5 text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -133,7 +144,7 @@ export const TimeHistoryTable: React.FC = () => {
                 ))
               ) : (
                 <TableRow key="no-entries">
-                  <TableCell colSpan={4} className="text-center h-24">
+                  <TableCell colSpan={5} className="text-center h-24">
                     No time entries found
                   </TableCell>
                 </TableRow>
