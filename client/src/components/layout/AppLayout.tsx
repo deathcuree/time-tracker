@@ -80,7 +80,7 @@ export const AppLayout = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-[#f8f9fb]">
         <Sidebar 
           className={cn(
             "flex-shrink-0 bg-sidebar-background border-r border-sidebar-border transition-[width]",
@@ -153,7 +153,7 @@ export const AppLayout = () => {
         </Sidebar>
         
         <main className="flex-1 overflow-y-auto">
-          <div className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3">
+          <div className="sticky top-0 z-0 bg-white border-b border-slate-200 shadow-sm px-4 py-3">
             <div className="flex items-center justify-between max-w-screen-2xl mx-auto">
               <div className="flex items-center gap-3">
                 <SidebarTrigger>
@@ -162,18 +162,18 @@ export const AppLayout = () => {
                     <span className="sr-only">Toggle navigation menu</span>
                   </Button>
                 </SidebarTrigger>
-                <h1 className="text-xl font-semibold">TimeTracker</h1>
+                <h1 className="text-xl font-semibold text-slate-800">TimeTracker</h1>
               </div>
               
               <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground hidden md:block">
+                <span className="text-sm text-slate-600 hidden md:block">
                   {user?.name} • {user?.role}
                 </span>
               </div>
             </div>
           </div>
           
-          <div className="container mx-auto py-8 px-4">
+          <div className="max-w-screen-2xl mx-auto p-6">
             <Outlet />
           </div>
         </main>

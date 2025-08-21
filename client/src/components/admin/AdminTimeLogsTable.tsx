@@ -233,7 +233,7 @@ export const AdminTimeLogsTable: React.FC = () => {
       </div>
 
       <CardContent>
-        <div className="rounded-md border">
+        <div className="rounded-xl">
           <Table>
             <TableHeader>
               <TableRow>

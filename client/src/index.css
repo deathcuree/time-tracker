@@ -212,3 +212,9 @@ body.login #root {
   max-width: none !important;
   text-align: initial !important;
 }
+
+/* Prevent any scrolling on the login route */
+body.login {
+  overflow: hidden !important;
+  height: 100svh;
+}

@@ -14,8 +14,8 @@ const PTORequestsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">PTO Requests</h1>
-        <p className="text-muted-foreground">View and manage your time off requests</p>
+        <h1 className="text-3xl font-bold text-slate-800">PTO Requests</h1>
+        <p className="text-slate-600">View and manage your time off requests</p>
       </div>
       
       <Tabs defaultValue="requests">
