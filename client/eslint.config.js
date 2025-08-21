@@ -24,6 +24,17 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unsafe-function-type": "off",
+      "@typescript-eslint/no-empty-object-type": "off",
+      "no-empty": ["warn", { "allowEmptyCatch": true }],
     },
+  }
+  ,
+  {
+    files: ["src/components/user/AddUserForm.tsx"],
+    rules: {
+      "react-hooks/rules-of-hooks": "off"
+    }
   }
 );

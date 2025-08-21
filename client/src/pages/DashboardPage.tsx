@@ -47,8 +47,8 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Welcome, {user?.name}</h1>
-        <p className="text-muted-foreground">Track your time and request time off</p>
+        <h1 className="text-3xl font-bold text-slate-800">Welcome, {user?.name}</h1>
+        <p className="text-slate-600">Track your time and request time off</p>
       </div>
       
       <TimeStats

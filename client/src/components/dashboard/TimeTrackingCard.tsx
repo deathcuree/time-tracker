@@ -17,7 +17,7 @@ export const TimeTrackingCard: React.FC<TimeTrackingCardProps> = ({ currentEntry
         </CardDescription>
         {currentEntry && (
           <>
-            <div className="mt-4 text-2xl font-bold">
+            <div className="mt-4 text-2xl font-bold text-slate-800">
               Clocked in since {new Date(currentEntry.clockIn).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
             </div>
           </>

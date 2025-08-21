@@ -9,7 +9,7 @@ const AccountPage = () => {
   return (
     <div className="flex min-h-full flex-col justify-start items-center py-6 space-y-6">
       <div className="w-full max-w-2xl">
-        <h1 className="text-3xl font-bold mb-6">Account Settings</h1>
+        <h1 className="text-3xl font-bold text-slate-800 mb-6">Account Settings</h1>
         
         <Card>
           <ProfileForm
