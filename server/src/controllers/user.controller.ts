@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import User from '../models/User.js';
 
-// Validation schema
 const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
@@ -14,16 +13,13 @@ const createUserSchema = z.object({
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    // Validate request body
     const validatedData = createUserSchema.parse(req.body);
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email: validatedData.email });
     if (existingUser) {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
 
-    // Create new user
     const user = new User({
       email: validatedData.email,
       firstName: validatedData.firstName,
@@ -35,7 +31,6 @@ export const createUser = async (req: Request, res: Response) => {
 
     await user.save();
 
-    // Return user without password
     const { password: _, ...userResponse } = user.toObject();
 
     res.status(201).json({

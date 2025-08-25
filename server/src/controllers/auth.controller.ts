@@ -23,7 +23,6 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
   try {
     const { firstName, lastName, email, password } = req.body;
 
-    // Validate input
     const validation = validateRegistrationInput(email, password, firstName, lastName);
     if (!validation.success) {
       res.status(400).json({
@@ -34,7 +33,6 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
       return;
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       res.status(400).json({ 
@@ -47,7 +45,6 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
       return;
     }
 
-    // Create new user (role will default to 'user')
     const user = new User({
       firstName,
       lastName,
@@ -57,13 +54,12 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
 
     await user.save();
 
-    // Generate token
     const token = generateToken(user._id.toString());
     res.cookie('token', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     res.status(201).json({
@@ -92,7 +88,6 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
   try {
     const { email, password } = req.body;
 
-    // Validate input
     const validation = validateLoginInput(email, password);
     if (!validation.success) {
       res.status(400).json({
@@ -103,7 +98,6 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
       return;
     }
 
-    // Find user
     const user = await User.findOne({ email }) as IUser | null;
     if (!user) {
       res.status(401).json({ 
@@ -116,7 +110,6 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
       return;
     }
 
-    // Check password
     const isMatch = await user.comparePassword(password);
     
     if (!isMatch) {
@@ -130,13 +123,12 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
       return;
     }
 
-    // Generate token
     const token = generateToken(user._id.toString());
     res.cookie('token', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     res.json({
@@ -164,8 +156,8 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
 export const logout = (req: Request, res: Response): void => {
   res.clearCookie('token', {
     httpOnly: true,
-    secure: true, // Always true for cross-site cookies
-    sameSite: 'none', // Required for cross-site cookies
+    secure: true,
+    sameSite: 'none',
   });
   res.json({ success: true, message: 'Logged out successfully' });
 };
@@ -197,7 +189,6 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
   try {
     const { firstName, lastName } = req.body;
     
-    // Validate input
     if (!firstName || !lastName) {
       res.status(400).json({
         success: false,
@@ -206,7 +197,6 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Update user
     const user = await User.findByIdAndUpdate(
       req.user!._id,
       { firstName, lastName },
@@ -238,7 +228,6 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
   try {
     const { currentPassword, newPassword } = req.body;
     
-    // Validate input
     if (!currentPassword || !newPassword) {
       res.status(400).json({
         success: false,
@@ -247,10 +236,8 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Find user with password
     const user = await User.findById(req.user!._id) as IUser;
     
-    // Verify current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       res.status(401).json({
@@ -260,9 +247,8 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Update password
     user.password = newPassword;
-    await user.save(); // This will trigger the pre-save hook to hash the password
+    await user.save();
 
     res.json({
       success: true,
@@ -289,10 +275,8 @@ export const validateCurrentPassword = async (req: Request, res: Response): Prom
       return;
     }
 
-    // Find user with password
     const user = await User.findById(req.user!._id) as IUser;
     
-    // Verify password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       res.status(401).json({

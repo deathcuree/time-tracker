@@ -219,26 +219,23 @@ export const exportTableData = async (
     const ws = XLSX.utils.json_to_sheet(rows, { header: ['Employee', 'Date', 'Hours', 'Reason', 'Status'] });
     XLSX.utils.book_append_sheet(wb, ws, 'Export');
 
-    // Write as a Node Buffer; serverless-http will base64-encode for binary responses
     const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' }) as Buffer;
 
     const today = new Date().toISOString().slice(0, 10);
     const filename = `table-export-${today}.xlsx`;
 
-    // Set precise XLSX content type and instruct intermediaries not to transform the body
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Transfer-Encoding', 'binary');
     res.setHeader('Cache-Control', 'no-store, no-transform');
     res.setHeader('Pragma', 'no-cache');
 
-    // End with the raw buffer to avoid any implicit transformations
     res.status(200).end(buffer);
   } catch (error) {
     res.status(500).json({ message: 'Failed to export data', error: (error as Error).message });
   }
 };
-// Admin Time Logs - list entries across users with search, filters, and pagination
+
 export const getTimeLogs = async (
   req: Request<{}, {}, {}, {
     search?: string;
@@ -268,19 +265,15 @@ export const getTimeLogs = async (
     const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
     const skip = (pageNum - 1) * limitNum;
 
-    // Build base match from date range and status
     const match: any = {};
 
-    // Date filter preference: month/year -> start/end -> none
     let rangeStart: Date | undefined;
     let rangeEnd: Date | undefined;
 
     if (year !== undefined && month !== undefined) {
-      // month expected 0-based (JS month index), consistent with existing client MonthYearFilter
       const y = Number(year);
       const m = Number(month);
       rangeStart = new Date(y, m, 1, 0, 0, 0, 0);
-      // last day of month at 23:59:59.999
       rangeEnd = new Date(y, m + 1, 0, 23, 59, 59, 999);
     } else if (startDate && endDate) {
       rangeStart = new Date(startDate);
@@ -351,7 +344,6 @@ export const getTimeLogs = async (
                   lastName: '$user.lastName',
                   email: '$user.email'
                 },
-                // Compute working hours up to now for active entries, round to 2 decimals
                 hours: {
                   $round: [
                     {
@@ -400,7 +392,6 @@ export const getTimeLogs = async (
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
-// Export all matching time logs to Excel (no pagination)
 export const exportTimeLogs = async (
   req: Request<{}, {}, {}, {
     search?: string;
@@ -424,7 +415,6 @@ export const exportTimeLogs = async (
       tzOffset,
     } = req.query;
 
-    // Timezone-aware formatters to mirror frontend display
     const tzOffsetMinutes = Number(tzOffset ?? '0');
     const toLocal = (d?: Date | null) => {
       if (!d) return null;
@@ -461,19 +451,15 @@ export const exportTimeLogs = async (
       if (m > 0) parts.push(`${m} min${m === 1 ? '' : 's'}`);
       return parts.length > 0 ? parts.join(' ') : '0 mins';
     };
-    // Build base match from date range and status
     const match: any = {};
 
-    // Date filter preference: month/year -> start/end -> none
     let rangeStart: Date | undefined;
     let rangeEnd: Date | undefined;
 
     if (year !== undefined && month !== undefined) {
-      // month expected 0-based (JS month index), consistent with existing client MonthYearFilter
       const y = Number(year);
       const m = Number(month);
       rangeStart = new Date(y, m, 1, 0, 0, 0, 0);
-      // last day of month at 23:59:59.999
       rangeEnd = new Date(y, m + 1, 0, 23, 59, 59, 999);
     } else if (startDate && endDate) {
       rangeStart = new Date(startDate);
@@ -566,7 +552,6 @@ export const exportTimeLogs = async (
 
     const items = await TimeEntry.aggregate(pipeline);
 
-    // Build rows for Excel
     const rows = items.map((item: any) => {
       const name = `${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}`.trim();
       return {
@@ -584,10 +569,8 @@ export const exportTimeLogs = async (
     const ws = XLSX.utils.json_to_sheet(rows, { header: ['Employee', 'Email', 'Date', 'Clock In', 'Clock Out', 'Hours Worked', 'Status'] });
     XLSX.utils.book_append_sheet(wb, ws, 'Time Logs');
 
-    // Write as a Node Buffer; serverless-http will base64-encode for binary responses
     const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' }) as Buffer;
 
-    // Prefer specific month/year filename when available
     let filename: string;
     if (year !== undefined && month !== undefined) {
       const y = Number(year);
@@ -598,14 +581,12 @@ export const exportTimeLogs = async (
       filename = `time-logs-${today}.xlsx`;
     }
 
-    // Set precise XLSX content type and instruct intermediaries not to transform the body
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Transfer-Encoding', 'binary');
     res.setHeader('Cache-Control', 'no-store, no-transform');
     res.setHeader('Pragma', 'no-cache');
 
-    // End with the raw buffer to avoid any implicit transformations
     res.status(200).end(buffer);
   } catch (error) {
     res.status(500).json({ message: 'Failed to export time logs', error: (error as Error).message });
