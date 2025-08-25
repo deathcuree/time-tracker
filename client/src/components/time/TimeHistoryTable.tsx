@@ -7,10 +7,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MonthYearFilter } from './MonthYearFilter';
 import { StatusFilter } from './StatusFilter';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Trash2 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
-const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
+const TimeEntryRow = memo(({ entry, onDelete }: { entry: TimeEntry; onDelete: (id: string) => void }) => {
   const formatTime = (time: string | null): string => {
     if (!time) return 'N/A';
     return format(parseISO(time), 'h:mm a');
@@ -35,6 +48,8 @@ const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
     return entry.clockOut ? 'completed' : 'active';
   };
 
+  const isActive = !entry.clockOut;
+
   return (
     <TableRow>
       <TableCell>
@@ -52,6 +67,46 @@ const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
       <TableCell className="text-center">
         <StatusBadge status={getStatus(entry)} />
       </TableCell>
+      <TableCell className="text-center">
+        <AlertDialog>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    disabled={isActive}
+                    aria-label={isActive ? 'Cannot delete an active time entry. Clock out first.' : 'Delete time entry'}
+                    title={isActive ? 'Cannot delete an active time entry. Clock out first.' : 'Delete time entry'}
+                  >
+                    <Trash2 />
+                  </Button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isActive ? 'Cannot delete active entry' : 'Delete entry'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete time entry?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the selected time entry.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => onDelete(entry.id ?? (entry as any)._id)}
+              >
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </TableCell>
     </TableRow>
   );
 });
@@ -59,9 +114,14 @@ const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
 TimeEntryRow.displayName = 'TimeEntryRow';
 
 export const TimeHistoryTable: React.FC = () => {
-  const { entries, isLoading, fetchEntries, pagination } = useTime();
+  const { entries, isLoading, fetchEntries, pagination, deleteTimeEntry } = useTime();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
+
+  const handleDelete = (id: string) => {
+    // Confirmation handled by AlertDialog; directly perform delete here.
+    deleteTimeEntry(id);
+  };
 
   const [currentFilters, setCurrentFilters] = useState({
     month: currentMonth,
@@ -130,21 +190,22 @@ export const TimeHistoryTable: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/5 text-center">Date</TableHead>
-                <TableHead className="w-1/5 text-center">Clock In</TableHead>
-                <TableHead className="w-1/5 text-center">Clock Out</TableHead>
-                <TableHead className="w-1/5 text-center">Hours Worked</TableHead>
-                <TableHead className="w-1/5 text-center">Status</TableHead>
+                <TableHead className="w-1/6 text-center">Date</TableHead>
+                <TableHead className="w-1/6 text-center">Clock In</TableHead>
+                <TableHead className="w-1/6 text-center">Clock Out</TableHead>
+                <TableHead className="w-1/6 text-center">Hours Worked</TableHead>
+                <TableHead className="w-1/6 text-center">Status</TableHead>
+                <TableHead className="w-1/6 text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {entries.length > 0 ? (
                 entries.map((entry) => (
-                  <TimeEntryRow key={entry.id} entry={entry} />
+                  <TimeEntryRow key={(entry.id ?? (entry as any)._id) as string} entry={entry} onDelete={handleDelete} />
                 ))
               ) : (
                 <TableRow key="no-entries">
-                  <TableCell colSpan={5} className="text-center h-24">
+                  <TableCell colSpan={6} className="text-center h-24">
                     No time entries found
                   </TableCell>
                 </TableRow>

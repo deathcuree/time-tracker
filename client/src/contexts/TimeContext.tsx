@@ -45,6 +45,7 @@ interface TimeContextType {
   totalHoursToday: number;
   totalHoursThisWeek: number;
   fetchEntries: (filters?: TimeFilters) => Promise<void>;
+  deleteTimeEntry: (id: string) => Promise<void>;
 }
 
 const TimeContext = createContext<TimeContextType | undefined>(undefined);
@@ -149,8 +150,11 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   };
-
-  const clockIn = async () => {
+ 
+  // Normalize id from server data that may use either "id" or "_id"
+  const getEntryId = (e: any): string => (e?.id ?? e?._id) as string;
+ 
+   const clockIn = async () => {
     if (!user) {
       toast.error('You must be logged in to clock in');
       return;
@@ -183,8 +187,8 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       const response = await api.post('/time/clock-out');
       const updatedEntry = response.data;
       
-      setEntries(prev => 
-        prev.map(entry => entry.id === updatedEntry.id ? updatedEntry : entry)
+      setEntries(prev =>
+        prev.map(entry => getEntryId(entry) === getEntryId(updatedEntry) ? updatedEntry : entry)
       );
       setCurrentEntry(null);
       setIsClockedIn(false);
@@ -195,6 +199,48 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       toast.success('Successfully clocked out!');
     } catch (error) {
       toast.error('Failed to clock out');
+    }
+  };
+
+  const deleteTimeEntry = async (id: string) => {
+    // Block deleting active entries on client-side
+    const target = entries.find(e => getEntryId(e) === id);
+    if (!target) {
+      toast.error('Time entry not found');
+      return;
+    }
+    if (!target.clockOut) {
+      toast.error('Cannot delete an active time entry. Please clock out first.');
+      return;
+    }
+
+    // Optimistic update: remove immediately
+    const prevEntries = [...entries];
+    const prevPagination = { ...pagination };
+
+    setEntries(prev => prev.filter(e => getEntryId(e) !== id));
+    setPagination(prev => {
+      const newTotalItems = Math.max(0, (prev.totalItems || prevEntries.length) - 1);
+      const pageSize = 10; // keep in sync with UI
+      const newTotalPages = Math.max(1, Math.ceil(newTotalItems / pageSize));
+      return {
+        ...prev,
+        totalItems: newTotalItems,
+        totalPages: newTotalPages,
+        currentPage: Math.min(prev.currentPage, newTotalPages),
+      };
+    });
+
+    try {
+      await api.delete(`/time/entries/${id}`);
+      toast.success('Time entry deleted successfully');
+      // Optionally refresh stats
+      await fetchTimeStats();
+    } catch (error) {
+      // Rollback on failure
+      setEntries(prevEntries);
+      setPagination(prevPagination);
+      toast.error('Failed to delete time entry');
     }
   };
 
@@ -209,7 +255,8 @@ export function TimeProvider({ children }: { children: ReactNode }) {
       totalHoursToday: timeStats.totalHoursToday,
       totalHoursThisWeek: timeStats.totalHoursThisWeek,
       fetchEntries,
-      pagination
+      pagination,
+      deleteTimeEntry,
     }}>
       {children}
     </TimeContext.Provider>
