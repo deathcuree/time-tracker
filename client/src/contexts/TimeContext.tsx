@@ -203,6 +203,17 @@ export function TimeProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteTimeEntry = async (id: string) => {
+    // Block deleting active entries on client-side
+    const target = entries.find(e => getEntryId(e) === id);
+    if (!target) {
+      toast.error('Time entry not found');
+      return;
+    }
+    if (!target.clockOut) {
+      toast.error('Cannot delete an active time entry. Please clock out first.');
+      return;
+    }
+
     // Optimistic update: remove immediately
     const prevEntries = [...entries];
     const prevPagination = { ...pagination };
@@ -210,7 +221,8 @@ export function TimeProvider({ children }: { children: ReactNode }) {
     setEntries(prev => prev.filter(e => getEntryId(e) !== id));
     setPagination(prev => {
       const newTotalItems = Math.max(0, (prev.totalItems || prevEntries.length) - 1);
-      const newTotalPages = Math.max(1, Math.ceil(newTotalItems / 10));
+      const pageSize = 10; // keep in sync with UI
+      const newTotalPages = Math.max(1, Math.ceil(newTotalItems / pageSize));
       return {
         ...prev,
         totalItems: newTotalItems,

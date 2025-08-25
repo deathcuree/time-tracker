@@ -46,6 +46,8 @@ const TimeEntryRow = memo(({ entry, onDelete }: { entry: TimeEntry; onDelete: (i
     return entry.clockOut ? 'completed' : 'active';
   };
 
+  const isActive = !entry.clockOut;
+
   return (
     <TableRow>
       <TableCell>
@@ -66,7 +68,12 @@ const TimeEntryRow = memo(({ entry, onDelete }: { entry: TimeEntry; onDelete: (i
       <TableCell className="text-center">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm">
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={isActive}
+              title={isActive ? 'Cannot delete an active time entry. Clock out first.' : 'Delete time entry'}
+            >
               Delete
             </Button>
           </AlertDialogTrigger>

@@ -199,6 +199,12 @@ export const deleteTimeEntry = async (req: Request, res: Response): Promise<void
       return;
     }
 
+    // Prevent deleting an active entry (no clockOut yet)
+    if (!entry.clockOut) {
+      res.status(400).json({ success: false, message: 'Cannot delete an active time entry. Please clock out first.' });
+      return;
+    }
+
     await TimeEntry.findByIdAndDelete(id);
 
     res.status(200).json({
