@@ -4,7 +4,6 @@ import { auth, isAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Create new user (admin only)
 router.post('/', auth, isAdmin, createUser);
 
 export default router; 
