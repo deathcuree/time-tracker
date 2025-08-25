@@ -4,7 +4,6 @@ import { ITimeEntry } from '../types/models.js';
 
 export const clockIn = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Check if there's already an active time entry
     const activeEntry = await TimeEntry.findOne({
       userId: req.user!._id,
       clockOut: null
@@ -58,7 +57,6 @@ export const getTimeEntries = async (req: Request, res: Response): Promise<void>
     const { startDate, endDate, page = 1, limit = 10 } = req.query;
     const query: any = { userId: req.user!._id };
 
-    // Add date range filter if provided
     if (startDate && endDate) {
       query.date = {
         $gte: new Date(startDate as string),
@@ -66,7 +64,6 @@ export const getTimeEntries = async (req: Request, res: Response): Promise<void>
       };
     }
 
-    // If page is provided, use pagination
     if (page) {
       const skip = (Number(page) - 1) * Number(limit);
       const entries = await TimeEntry.find(query)
@@ -85,7 +82,6 @@ export const getTimeEntries = async (req: Request, res: Response): Promise<void>
         }
       });
     } else {
-      // If no page is provided, return all entries (used for dashboard)
       const entries = await TimeEntry.find(query)
         .sort({ date: -1, clockIn: -1 });
 
@@ -103,19 +99,14 @@ export const getTimeStats = async (req: Request, res: Response): Promise<void> =
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get the start of the current week (Monday)
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
 
-    // Get all active or recent entries that might overlap with today
     const todayEntries = await TimeEntry.find({
       userId: req.user!._id,
       $or: [
-        // Entries that started today
         { clockIn: { $gte: today, $lt: tomorrow } },
-        // Entries that are still active (no clockOut)
         { clockOut: null },
-        // Entries that started before today but ended today
         { 
           clockIn: { $lt: today },
           clockOut: { $gte: today, $lt: tomorrow }
@@ -123,7 +114,6 @@ export const getTimeStats = async (req: Request, res: Response): Promise<void> =
       ]
     });
 
-    // Get this week's entries
     const weekEntries = await TimeEntry.find({
       userId: req.user!._id,
       date: {
@@ -132,13 +122,11 @@ export const getTimeStats = async (req: Request, res: Response): Promise<void> =
       }
     });
 
-    // Calculate hours for today
     let totalHoursToday = 0;
     todayEntries.forEach(entry => {
       const clockIn = new Date(entry.clockIn);
       const clockOut = entry.clockOut ? new Date(entry.clockOut) : new Date();
       
-      // Calculate overlap with today
       const startTime = clockIn < today ? today : clockIn;
       const endTime = clockOut > tomorrow ? tomorrow : clockOut;
       
@@ -146,13 +134,12 @@ export const getTimeStats = async (req: Request, res: Response): Promise<void> =
       totalHoursToday += hoursWorked;
     });
 
-    // Calculate hours for the week
     let totalHoursThisWeek = 0;
     weekEntries.forEach(entry => {
       const clockIn = new Date(entry.clockIn).getTime();
       const clockOut = entry.clockOut 
         ? new Date(entry.clockOut).getTime()
-        : (new Date().getTime()); // Use current time for active session
+        : (new Date().getTime());
 
       const hoursWorked = (clockOut - clockIn) / (1000 * 60 * 60);
       totalHoursThisWeek += hoursWorked;

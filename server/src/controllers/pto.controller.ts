@@ -3,11 +3,9 @@ import PTORequest from '../models/PTORequest.js';
 import User from '../models/User.js';
 import { IPTORequest, IPTORequestBody } from '../types/models.js';
 
-const MONTHLY_PTO_HOURS = 16; // 16 hours per month
+const MONTHLY_PTO_HOURS = 16;
 
-// Helper function to create date search conditions
 const createDateSearchConditions = (searchStr: string) => {
-  // Convert month names to numbers (1-12)
   const monthMap: { [key: string]: string } = {
     'january': '01', 'february': '02', 'march': '03', 'april': '04',
     'may': '05', 'june': '06', 'july': '07', 'august': '08',
@@ -17,7 +15,6 @@ const createDateSearchConditions = (searchStr: string) => {
   const searchLower = searchStr.toLowerCase();
   const conditions = [];
 
-  // Check if search string matches a month name
   for (const [monthName, monthNum] of Object.entries(monthMap)) {
     if (monthName.includes(searchLower) || searchLower.includes(monthName)) {
       conditions.push({
@@ -31,7 +28,6 @@ const createDateSearchConditions = (searchStr: string) => {
     }
   }
 
-  // Add condition for searching by formatted date string
   conditions.push({
     $expr: {
       $regexMatch: {
@@ -60,7 +56,6 @@ export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: 
       return;
     }
 
-    // Validate date is in the future
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     const requestDate = new Date(date);
@@ -70,13 +65,11 @@ export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: 
       return;
     }
 
-    // Validate hours (1-8 hours per day)
     if (hours < 1 || hours > 8) {
       res.status(400).json({ message: 'PTO hours must be between 1 and 8' });
       return;
     }
 
-    // Check total hours used in the month
     const requestMonth = requestDate.getMonth();
     const requestYear = requestDate.getFullYear();
     
@@ -85,7 +78,7 @@ export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: 
       status: 'approved',
       $expr: {
         $and: [
-          { $eq: [{ $month: '$date' }, requestMonth + 1] }, // MongoDB months are 1-indexed
+          { $eq: [{ $month: '$date' }, requestMonth + 1] },
           { $eq: [{ $year: '$date' }, requestYear] }
         ]
       }
@@ -256,12 +249,10 @@ export const getAllRequests = async (req: Request, res: Response): Promise<void>
           ]
         }));
 
-        // Add number search only for the full search string (not split terms)
         if (!isNaN(Number(searchStr))) {
           searchConditions.push({ hours: Number(searchStr) });
         }
 
-        // Add date conditions
         searchConditions.push(...dateConditions);
 
         pipeline.push({
@@ -308,7 +299,7 @@ export const getMonthlyRequestCount = async (req: Request, res: Response): Promi
     }
 
     const startDate = new Date(yearNum, monthNum - 1, 1);
-    const endDate = new Date(yearNum, monthNum, 0); // Last day of the month
+    const endDate = new Date(yearNum, monthNum, 0);
 
     const requests = await PTORequest.find({
       userId: req.user!._id,
@@ -333,8 +324,8 @@ export const getYearlyPTOHours = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const startDate = new Date(year, 0, 1); // January 1st
-    const endDate = new Date(year, 11, 31); // December 31st
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
 
     const requests = await PTORequest.find({
       userId: req.user!._id,
