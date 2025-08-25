@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 
 const ITEMS_PER_PAGE = 10;
 
-const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
+const TimeEntryRow = memo(({ entry, onDelete }: { entry: TimeEntry; onDelete: (id: string) => void }) => {
   const formatTime = (time: string | null): string => {
     if (!time) return 'N/A';
     return format(parseISO(time), 'h:mm a');
@@ -52,6 +52,15 @@ const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
       <TableCell className="text-center">
         <StatusBadge status={getStatus(entry)} />
       </TableCell>
+      <TableCell className="text-center">
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => onDelete(entry.id ?? (entry as any)._id)}
+        >
+          Delete
+        </Button>
+      </TableCell>
     </TableRow>
   );
 });
@@ -59,9 +68,15 @@ const TimeEntryRow = memo(({ entry }: { entry: TimeEntry }) => {
 TimeEntryRow.displayName = 'TimeEntryRow';
 
 export const TimeHistoryTable: React.FC = () => {
-  const { entries, isLoading, fetchEntries, pagination } = useTime();
+  const { entries, isLoading, fetchEntries, pagination, deleteTimeEntry } = useTime();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Delete this time entry? This action cannot be undone.')) {
+      deleteTimeEntry(id);
+    }
+  };
 
   const [currentFilters, setCurrentFilters] = useState({
     month: currentMonth,
@@ -130,21 +145,22 @@ export const TimeHistoryTable: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/5 text-center">Date</TableHead>
-                <TableHead className="w-1/5 text-center">Clock In</TableHead>
-                <TableHead className="w-1/5 text-center">Clock Out</TableHead>
-                <TableHead className="w-1/5 text-center">Hours Worked</TableHead>
-                <TableHead className="w-1/5 text-center">Status</TableHead>
+                <TableHead className="w-1/6 text-center">Date</TableHead>
+                <TableHead className="w-1/6 text-center">Clock In</TableHead>
+                <TableHead className="w-1/6 text-center">Clock Out</TableHead>
+                <TableHead className="w-1/6 text-center">Hours Worked</TableHead>
+                <TableHead className="w-1/6 text-center">Status</TableHead>
+                <TableHead className="w-1/6 text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {entries.length > 0 ? (
                 entries.map((entry) => (
-                  <TimeEntryRow key={entry.id} entry={entry} />
+                  <TimeEntryRow key={(entry.id ?? (entry as any)._id) as string} entry={entry} onDelete={handleDelete} />
                 ))
               ) : (
                 <TableRow key="no-entries">
-                  <TableCell colSpan={5} className="text-center h-24">
+                  <TableCell colSpan={6} className="text-center h-24">
                     No time entries found
                   </TableCell>
                 </TableRow>

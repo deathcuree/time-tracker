@@ -1,0 +1,46 @@
+name: "Delete Single Time Entry Feature"
+description: |
+  Add a feature in the time-tracking application to allow users to delete a single
+  time entry (not all entries). The backend already exists in Node.js/Express with
+  MongoDB, and the frontend is in React with Tailwind. The API integration, routes,
+  and authentication middleware are already in place.
+
+tasks:
+  - name: "Backend - Add DELETE Route"
+    details: |
+      1. In `time.routes.js`, add a DELETE route:
+         - Endpoint: DELETE /api/time/entries/:id
+         - Must use the existing `auth` middleware
+         - Should call a new controller function: deleteTimeEntry
+      2. In `time.controller.js`, implement `deleteTimeEntry`:
+         - Delete the entry by its `_id`
+         - Verify that it belongs to the authenticated user
+         - Return JSON:
+           {
+             "success": true,
+             "message": "Time entry deleted successfully",
+             "deletedId": "..."
+           }
+         - If not found → return 404
+         - If unauthorized → return 403
+      3. Ensure error handling and proper async/await usage.
+
+  - name: "Frontend - Add Delete Button"
+    details: |
+      1. On the time history list, add a delete button beside each entry.
+      2. Button behavior:
+         - Confirm with the user before deleting
+         - Call axios.delete("/api/time/entries/:id")
+         - On success → remove entry from UI state without full reload
+         - On error → show toast or inline error
+      3. Use Tailwind styles and keep consistent with current UI.
+      4. Use existing axios instance if available.
+      5. Implement optimistic update: remove from UI immediately, rollback if API fails.
+
+  - name: "Expectations"
+    details: |
+      - Code must be clean, modular, and production-grade.
+      - Must follow existing conventions.
+      - Do not remove or alter current functionality (clock-in, clock-out, etc.).
+      - Include complete code snippets for router, controller, and React component updates.
+      - Provide proper error handling and status codes.

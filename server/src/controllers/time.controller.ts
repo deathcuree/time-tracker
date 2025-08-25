@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import TimeEntry from '../models/TimeEntry.js';
 import { ITimeEntry } from '../types/models.js';
 
@@ -168,4 +169,44 @@ export const getCurrentStatus = async (req: Request, res: Response): Promise<voi
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
-}; 
+};
+
+/**
+ * DELETE /api/time/entries/:id
+ * Deletes a single time entry by id.
+ * - 400 if invalid id
+ * - 404 if not found
+ * - 403 if entry exists but does not belong to the authenticated user
+ */
+export const deleteTimeEntry = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'Invalid entry id' });
+      return;
+    }
+
+    const entry = await TimeEntry.findById(id) as ITimeEntry | null;
+
+    if (!entry) {
+      res.status(404).json({ success: false, message: 'Time entry not found' });
+      return;
+    }
+
+    if (entry.userId.toString() !== req.user!._id.toString()) {
+      res.status(403).json({ success: false, message: 'Not authorized to delete this entry' });
+      return;
+    }
+
+    await TimeEntry.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Time entry deleted successfully',
+      deletedId: id
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error', error: (error as Error).message });
+  }
+};
