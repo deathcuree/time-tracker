@@ -18,6 +18,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Trash2 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -67,16 +69,26 @@ const TimeEntryRow = memo(({ entry, onDelete }: { entry: TimeEntry; onDelete: (i
       </TableCell>
       <TableCell className="text-center">
         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={isActive}
-              title={isActive ? 'Cannot delete an active time entry. Clock out first.' : 'Delete time entry'}
-            >
-              Delete
-            </Button>
-          </AlertDialogTrigger>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    disabled={isActive}
+                    aria-label={isActive ? 'Cannot delete an active time entry. Clock out first.' : 'Delete time entry'}
+                    title={isActive ? 'Cannot delete an active time entry. Clock out first.' : 'Delete time entry'}
+                  >
+                    <Trash2 />
+                  </Button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isActive ? 'Cannot delete active entry' : 'Delete entry'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete time entry?</AlertDialogTitle>
