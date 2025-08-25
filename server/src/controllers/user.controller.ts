@@ -12,7 +12,6 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     password?: string;
   };
 
-  // Basic guard validations; detailed validation is handled by route middlewares.
   if (!email || !firstName || !lastName || !password || !role || !position) {
     errorResponse(res, 400, 'Validation error', {
       email: !email ? 'Email is required' : undefined,

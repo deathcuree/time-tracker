@@ -34,4 +34,7 @@ timeEntrySchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.model<ITimeEntry>('TimeEntry', timeEntrySchema); 
+timeEntrySchema.index({ userId: 1, date: -1 });
+timeEntrySchema.index({ clockOut: 1 });
+
+export default mongoose.model<ITimeEntry>('TimeEntry', timeEntrySchema);

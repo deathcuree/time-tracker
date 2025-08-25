@@ -13,9 +13,6 @@ import {
 import { ILoginRequest, IRegisterRequest } from '../types/models.js';
 import { validateLoginInput, validateRegistrationInput } from '../utils/validation.js';
 
-/**
- * Register a new user
- */
 export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Response): Promise<void> => {
   const { firstName, lastName, email, password } = req.body;
 
@@ -42,9 +39,6 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
   });
 };
 
-/**
- * Login
- */
 export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response): Promise<void> => {
   const { email, password } = req.body;
 
@@ -71,18 +65,11 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
   });
 };
 
-/**
- * Logout
- */
 export const logout = (_req: Request, res: Response): void => {
-  // clearCookie should use the same attributes for reliable clearing on browsers
   res.clearCookie('token', getCookieOptions({ httpOnly: true }));
   success(res, { message: 'Logged out successfully' });
 };
 
-/**
- * Get current user profile
- */
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user?. _id?.toString();
   if (!userId) {
@@ -98,9 +85,6 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
   success(res, user);
 };
 
-/**
- * Update profile names
- */
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user?. _id?.toString();
   if (!userId) {
@@ -124,9 +108,6 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
   success(res, user);
 };
 
-/**
- * Update password
- */
 export const updatePassword = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user?. _id?.toString();
   if (!userId) {
@@ -146,9 +127,6 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
   success(res, { message: 'Password updated successfully' });
 };
 
-/**
- * Validate current password
- */
 export const validateCurrentPassword = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user?. _id?.toString();
   if (!userId) {

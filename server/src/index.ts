@@ -44,9 +44,21 @@ app.use((req: Request, res: Response) => res.status(404).json({ message: 'Not Fo
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   logger.error(err, 'Unhandled error');
+
+  const anyErr = err as any;
+  const status = typeof anyErr.status === 'number'
+    ? anyErr.status
+    : typeof anyErr.statusCode === 'number'
+      ? anyErr.statusCode
+      : 500;
+
   const isProd = process.env.NODE_ENV === 'production';
-  const message = isProd ? 'Internal Server Error' : err.message;
-  return errorResponse(res, 500, message);
+  const isHttpError = status >= 400 && status < 600 && status !== 500;
+  const message = isProd
+    ? (isHttpError ? (anyErr.message || 'Request failed') : 'Internal Server Error')
+    : (anyErr.message || 'Internal Server Error');
+
+  return errorResponse(res, status, message, isProd ? undefined : anyErr);
 });
 
 let isConnected = false;

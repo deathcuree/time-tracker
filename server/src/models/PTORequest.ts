@@ -58,4 +58,7 @@ ptoRequestSchema.virtual('month').get(function(): number {
 ptoRequestSchema.set('toJSON', { virtuals: true });
 ptoRequestSchema.set('toObject', { virtuals: true });
 
-export default mongoose.model<IPTORequest>('PTORequest', ptoRequestSchema); 
+ptoRequestSchema.index({ userId: 1, date: -1 });
+ptoRequestSchema.index({ status: 1 });
+
+export default mongoose.model<IPTORequest>('PTORequest', ptoRequestSchema);

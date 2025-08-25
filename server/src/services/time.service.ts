@@ -1,140 +1,192 @@
 import TimeEntry from '../models/TimeEntry.js';
 import { ITimeEntry } from '../types/models.js';
 import { Types } from 'mongoose';
+import createError from 'http-errors';
+import { isValidObjectId, parseDateRange, clampPagination } from '../utils/date.js';
 
 export async function clockInForUser(userId: string): Promise<ITimeEntry> {
-  const activeEntry = await TimeEntry.findOne({
-    userId: new Types.ObjectId(userId),
-    clockOut: null,
-  });
+  try {
+    if (!isValidObjectId(userId)) {
+      throw createError(400, 'Invalid userId');
+    }
 
-  if (activeEntry) {
-    throw new Error('You already have an active time entry');
+    const [activeEntry] = await Promise.all([
+      TimeEntry.findOne({
+        userId: new Types.ObjectId(userId),
+        clockOut: null,
+      }),
+    ]);
+
+    if (activeEntry) {
+      throw createError(400, 'You already have an active time entry');
+    }
+
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+
+    const timeEntry = new TimeEntry({
+      userId: new Types.ObjectId(userId),
+      date: today,
+      clockIn: now,
+    }) as ITimeEntry;
+
+    await timeEntry.save();
+    return timeEntry;
+  } catch (err) {
+    if (createError.isHttpError?.(err as any)) throw err;
+    throw createError(500, (err as Error).message || 'Failed to clock in');
   }
-
-  const now = new Date();
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-
-  const timeEntry = new TimeEntry({
-    userId: new Types.ObjectId(userId),
-    date: today,
-    clockIn: now,
-  }) as ITimeEntry;
-
-  await timeEntry.save();
-  return timeEntry;
 }
 
 export async function clockOutForUser(userId: string): Promise<ITimeEntry> {
-  const timeEntry = (await TimeEntry.findOne({
-    userId: new Types.ObjectId(userId),
-    clockOut: null,
-  })) as ITimeEntry | null;
+  try {
+    if (!isValidObjectId(userId)) {
+      throw createError(400, 'Invalid userId');
+    }
 
-  if (!timeEntry) {
-    throw new Error('No active time entry found');
+    const timeEntry = (await TimeEntry.findOne({
+      userId: new Types.ObjectId(userId),
+      clockOut: null,
+    })) as ITimeEntry | null;
+
+    if (!timeEntry) {
+      throw createError(404, 'No active time entry found');
+    }
+
+    timeEntry.clockOut = new Date();
+    await timeEntry.save();
+
+    return timeEntry;
+  } catch (err) {
+    if (createError.isHttpError?.(err as any)) throw err;
+    throw createError(500, (err as Error).message || 'Failed to clock out');
   }
-
-  timeEntry.clockOut = new Date();
-  await timeEntry.save();
-
-  return timeEntry;
 }
 
-export async function getEntriesForUser(userId: string, options: { startDate?: string; endDate?: string; page?: number; limit?: number } = {}) {
-  const { startDate, endDate, page, limit } = options;
-  const query: any = { userId: new Types.ObjectId(userId) };
+export async function getEntriesForUser(
+  userId: string,
+  options: { startDate?: string; endDate?: string; page?: number; limit?: number } = {}
+): Promise<{ items: ITimeEntry[]; pagination: { total: number; page: number; limit: number } }> {
+  try {
+    if (!isValidObjectId(userId)) {
+      throw createError(400, 'Invalid userId');
+    }
 
-  if (startDate && endDate) {
-    query.date = {
-      $gte: new Date(startDate),
-      $lte: new Date(endDate),
-    };
-  }
+    const { startDate, endDate, page, limit } = options;
+    const { start, end } = parseDateRange(startDate, endDate);
 
-  if (page) {
-    const skip = (Number(page) - 1) * Number(limit ?? 10);
-    const entries = await TimeEntry.find(query).sort({ date: -1, clockIn: -1 }).skip(skip).limit(Number(limit ?? 10));
-    const total = await TimeEntry.countDocuments(query);
+    const query: any = { userId: new Types.ObjectId(userId) };
+    if (start || end) {
+      query.date = {};
+      if (start) query.date.$gte = start;
+      if (end) query.date.$lte = end;
+    }
+
+    const { page: p, limit: l, skip } = clampPagination(page, limit, 100);
+
+    const [items, total] = await Promise.all([
+      TimeEntry.find(query).sort({ date: -1, clockIn: -1 }).skip(skip).limit(l),
+      TimeEntry.countDocuments(query),
+    ]);
+
     return {
-      entries,
-      pagination: {
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit ?? 10)),
-      },
+      items,
+      pagination: { total, page: p, limit: l },
     };
-  } else {
-    const entries = await TimeEntry.find(query).sort({ date: -1, clockIn: -1 });
-    return { entries };
+  } catch (err) {
+    if (createError.isHttpError?.(err as any)) throw err;
+    throw createError(500, (err as Error).message || 'Failed to fetch entries');
   }
 }
 
 export async function getStatsForUser(userId: string): Promise<{ totalHoursToday: number; totalHoursThisWeek: number }> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  try {
+    if (!isValidObjectId(userId)) {
+      throw createError(400, 'Invalid userId');
+    }
 
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const todayEntries = await TimeEntry.find({
-    userId: new Types.ObjectId(userId),
-    $or: [
-      { clockIn: { $gte: today, $lt: tomorrow } },
-      { clockOut: null },
-      {
-        clockIn: { $lt: today },
-        clockOut: { $gte: today, $lt: tomorrow },
-      },
-    ],
-  });
+    const startOfWeek = new Date(today);
+    // ISO week start (Mon)
+    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+    startOfWeek.setHours(0, 0, 0, 0);
 
-  const weekEntries = await TimeEntry.find({
-    userId: new Types.ObjectId(userId),
-    date: {
-      $gte: startOfWeek,
-      $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
-    },
-  });
+    const [todayEntries, weekEntries] = await Promise.all([
+      TimeEntry.find({
+        userId: new Types.ObjectId(userId),
+        $or: [
+          { clockIn: { $gte: today, $lt: tomorrow } },
+          { clockOut: null },
+          {
+            clockIn: { $lt: today },
+            clockOut: { $gte: today, $lt: tomorrow },
+          },
+        ],
+      }),
+      TimeEntry.find({
+        userId: new Types.ObjectId(userId),
+        date: {
+          $gte: startOfWeek,
+          $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+        },
+      }),
+    ]);
 
-  let totalHoursToday = 0;
-  todayEntries.forEach((entry) => {
-    const clockIn = new Date(entry.clockIn);
-    const clockOut = entry.clockOut ? new Date(entry.clockOut) : new Date();
+    let totalHoursToday = 0;
+    for (const entry of todayEntries) {
+      const clockIn = new Date(entry.clockIn);
+      const clockOut = entry.clockOut ? new Date(entry.clockOut) : new Date();
 
-    const startTime = clockIn < today ? today : clockIn;
-    const endTime = clockOut > tomorrow ? tomorrow : clockOut;
+      const startTime = clockIn < today ? today : clockIn;
+      const endTime = clockOut > tomorrow ? tomorrow : clockOut;
 
-    const hoursWorked = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-    totalHoursToday += hoursWorked;
-  });
+      const hoursWorked = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      totalHoursToday += hoursWorked;
+    }
 
-  let totalHoursThisWeek = 0;
-  weekEntries.forEach((entry) => {
-    const clockIn = new Date(entry.clockIn).getTime();
-    const clockOut = entry.clockOut ? new Date(entry.clockOut).getTime() : new Date().getTime();
+    let totalHoursThisWeek = 0;
+    for (const entry of weekEntries) {
+      const clockIn = new Date(entry.clockIn).getTime();
+      const clockOut = entry.clockOut ? new Date(entry.clockOut).getTime() : new Date().getTime();
 
-    const hoursWorked = (clockOut - clockIn) / (1000 * 60 * 60);
-    totalHoursThisWeek += hoursWorked;
-  });
+      const hoursWorked = (clockOut - clockIn) / (1000 * 60 * 60);
+      totalHoursThisWeek += hoursWorked;
+    }
 
-  return {
-    totalHoursToday: parseFloat(totalHoursToday.toFixed(2)),
-    totalHoursThisWeek: parseFloat(totalHoursThisWeek.toFixed(2)),
-  };
+    return {
+      totalHoursToday: parseFloat(totalHoursToday.toFixed(2)),
+      totalHoursThisWeek: parseFloat(totalHoursThisWeek.toFixed(2)),
+    };
+  } catch (err) {
+    if (createError.isHttpError?.(err as any)) throw err;
+    throw createError(500, (err as Error).message || 'Failed to compute stats');
+  }
 }
 
-export async function getCurrentStatusForUser(userId: string): Promise<{ isClockedIn: boolean; activeEntry: ITimeEntry | null }> {
-  const activeEntry = (await TimeEntry.findOne({
-    userId: new Types.ObjectId(userId),
-    clockOut: null,
-  }).sort({ clockIn: -1 })) as ITimeEntry | null;
+export async function getCurrentStatusForUser(
+  userId: string
+): Promise<{ isClockedIn: boolean; activeEntry: ITimeEntry | null }> {
+  try {
+    if (!isValidObjectId(userId)) {
+      throw createError(400, 'Invalid userId');
+    }
 
-  return {
-    isClockedIn: !!activeEntry,
-    activeEntry,
-  };
+    const activeEntry = (await TimeEntry.findOne({
+      userId: new Types.ObjectId(userId),
+      clockOut: null,
+    }).sort({ clockIn: -1 })) as ITimeEntry | null;
+
+    return {
+      isClockedIn: !!activeEntry,
+      activeEntry,
+    };
+  } catch (err) {
+    if (createError.isHttpError?.(err as any)) throw err;
+    throw createError(500, (err as Error).message || 'Failed to get current status');
+  }
 }
