@@ -4,10 +4,8 @@ import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Protect all routes
 router.use(auth);
 
-// Routes
 router.post('/clock-in', clockIn);
 router.post('/clock-out', clockOut);
 router.get('/entries', getTimeEntries);

@@ -28,7 +28,7 @@ const userSchema = new Schema<IUser>({
   role: {
     type: String,
     enum: ['user', 'admin'],
-    default: 'user' // Changed from 'admin' to 'user'
+    default: 'user'
   },
   position: {
     type: String,
@@ -39,12 +39,10 @@ const userSchema = new Schema<IUser>({
   timestamps: true
 });
 
-// Virtual for full name
 userSchema.virtual('name').get(function() {
   return `${this.firstName} ${this.lastName}`;
 });
 
-// Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
@@ -57,7 +55,6 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };

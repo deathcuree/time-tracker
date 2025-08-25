@@ -51,12 +51,10 @@ const ptoRequestSchema = new Schema<IPTORequest>({
   timestamps: true
 });
 
-// Virtual field to get the month of the request
 ptoRequestSchema.virtual('month').get(function(): number {
   return this.date.getMonth();
 });
 
-// Ensure virtuals are included in JSON
 ptoRequestSchema.set('toJSON', { virtuals: true });
 ptoRequestSchema.set('toObject', { virtuals: true });
 

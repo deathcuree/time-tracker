@@ -27,10 +27,9 @@ const timeEntrySchema = new Schema<ITimeEntry>({
   timestamps: true
 });
 
-// Calculate total hours when clock out is set
 timeEntrySchema.pre('save', function(next) {
   if (this.clockOut) {
-    this.totalHours = (this.clockOut.getTime() - this.clockIn.getTime()) / (1000 * 60 * 60); // Convert to hours
+    this.totalHours = (this.clockOut.getTime() - this.clockIn.getTime()) / (1000 * 60 * 60);
   }
   next();
 });

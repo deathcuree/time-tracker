@@ -5,7 +5,6 @@ import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Validation middleware
 const loginValidation = [
   body('email').isEmail().withMessage('Please enter a valid email'),
   body('password').notEmpty().withMessage('Password is required')
@@ -23,7 +22,6 @@ const updatePasswordValidation = [
     .withMessage('New password must be at least 6 characters long')
 ];
 
-// Routes
 router.post('/login', loginValidation, login);
 router.post('/logout', logout);
 router.get('/profile', auth, getProfile);

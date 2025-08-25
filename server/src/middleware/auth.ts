@@ -1,11 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { IUser } from '../types/models.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Verify JWT secret is configured
 if (!JWT_SECRET) {
   process.exit(1);
 }
