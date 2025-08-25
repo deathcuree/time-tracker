@@ -1,6 +1,14 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { getAllUsers, getUserTimeEntries, getTimeReport, updateUserRole, exportTableData, getTimeLogs, exportTimeLogs } from '../controllers/admin.controller.js';
+import {
+  getAllUsers,
+  getUserTimeEntries,
+  getTimeReport,
+  updateUserRole,
+  exportTableData,
+  getTimeLogs,
+  exportTimeLogs,
+} from '../controllers/admin.controller.js';
 import { auth, isAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -13,9 +21,10 @@ router.get('/users/:userId/time-entries', getUserTimeEntries);
 router.get('/reports/time', getTimeReport);
 router.get('/time/logs', getTimeLogs);
 router.get('/time/logs/export', exportTimeLogs);
-router.patch('/users/:userId/role',
+router.patch(
+  '/users/:userId/role',
   body('role').isIn(['user', 'admin']).withMessage('Invalid role'),
-  updateUserRole
+  updateUserRole,
 );
 router.get('/table/export', exportTableData);
 
