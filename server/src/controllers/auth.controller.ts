@@ -8,12 +8,16 @@ import {
   getUserProfile as getUserProfileService,
   updateUserProfile as updateUserProfileService,
   updateUserPassword as updateUserPasswordService,
-  validatePassword as validatePasswordService
+  validatePassword as validatePasswordService,
 } from '../services/auth.service.js';
 import { ILoginRequest, IRegisterRequest } from '../types/models.js';
 import { validateLoginInput, validateRegistrationInput } from '../utils/validation.js';
+import { serializeUser } from '../utils/serializer.js';
 
-export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Response): Promise<void> => {
+export const register = async (
+  req: Request<{}, {}, IRegisterRequest>,
+  res: Response,
+): Promise<void> => {
   const { firstName, lastName, email, password } = req.body;
 
   const validation = validateRegistrationInput(email, password, firstName, lastName);
@@ -28,14 +32,7 @@ export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Resp
   res.cookie('token', token, getAuthCookieOptions());
 
   created(res, {
-    user: {
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      name: user.name,
-      email: user.email,
-      role: user.role
-    }
+    user: serializeUser(user),
   });
 };
 
@@ -54,14 +51,7 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
   res.cookie('token', token, getAuthCookieOptions());
 
   success(res, {
-    user: {
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      name: user.name,
-      email: user.email,
-      role: user.role
-    }
+    user: serializeUser(user),
   });
 };
 
@@ -71,7 +61,7 @@ export const logout = (_req: Request, res: Response): void => {
 };
 
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
-  const userId = req.user?. _id?.toString();
+  const userId = req.user?._id?.toString();
   if (!userId) {
     errorResponse(res, 401, 'Authentication required');
     return;
@@ -82,11 +72,11 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
     errorResponse(res, 404, 'User not found');
     return;
   }
-  success(res, user);
+  success(res, { user: serializeUser(user) });
 };
 
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
-  const userId = req.user?. _id?.toString();
+  const userId = req.user?._id?.toString();
   if (!userId) {
     errorResponse(res, 401, 'Authentication required');
     return;
@@ -105,17 +95,20 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  success(res, user);
+  success(res, { user: serializeUser(user) });
 };
 
 export const updatePassword = async (req: Request, res: Response): Promise<void> => {
-  const userId = req.user?. _id?.toString();
+  const userId = req.user?._id?.toString();
   if (!userId) {
     errorResponse(res, 401, 'Authentication required');
     return;
   }
 
-  const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword?: string;
+    newPassword?: string;
+  };
 
   if (!currentPassword || !newPassword) {
     errorResponse(res, 400, 'Current password and new password are required');
@@ -128,7 +121,7 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
 };
 
 export const validateCurrentPassword = async (req: Request, res: Response): Promise<void> => {
-  const userId = req.user?. _id?.toString();
+  const userId = req.user?._id?.toString();
   if (!userId) {
     errorResponse(res, 401, 'Authentication required');
     return;

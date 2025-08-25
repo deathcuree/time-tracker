@@ -8,6 +8,7 @@ export type UserRole = 'user' | 'admin';
 interface BaseUserData {
   email: string;
   role: string;
+  position?: string;
 }
 
 interface LegacyUserData extends BaseUserData {
@@ -38,6 +39,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  position?: string;
 }
 
 interface AuthContextType {
@@ -66,14 +68,16 @@ const normalizeUserData = (response: ApiResponse<ServerUserData | AuthResponse>)
     name = `${userData.firstName} ${userData.lastName}`.trim();
   } else {
     name = 'Unknown User';
-    toast.info('User data missing name fields:', userData);
+    toast.info('User data missing name fields');
+    console.info('User data missing name fields:', userData);
   }
   
   const normalizedUser = {
     id,
     name,
     email: userData.email,
-    role: (userData.role || 'user') as UserRole
+    role: (userData.role || 'user') as UserRole,
+    position: (userData as any).position
   };
   
   return normalizedUser;

@@ -14,6 +14,7 @@ export interface AuthResponse {
     lastName: string;
     name: string;
     role: string;
+    position?: string;
   };
 }
 
