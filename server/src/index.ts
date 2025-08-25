@@ -12,6 +12,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import serverless from 'serverless-http';
 import { validateEnv } from './utils/validateEnv.js';
+import { logger } from './utils/logger.js';
+import { error as errorResponse } from './utils/response.js';
 
 validateEnv();
 
@@ -25,7 +27,6 @@ app.use(express.json());
 app.use(cookieParser() as any);
 app.use(morgan('combined'));
 
-// Proper CORS with credentials and exposed headers for downloads
 app.use(cors({
   origin: (CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(Boolean),
   credentials: true,
@@ -42,8 +43,10 @@ app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
 app.use((req: Request, res: Response) => res.status(404).json({ message: 'Not Found' }));
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message });
+  logger.error(err, 'Unhandled error');
+  const isProd = process.env.NODE_ENV === 'production';
+  const message = isProd ? 'Internal Server Error' : err.message;
+  return errorResponse(res, 500, message);
 });
 
 let isConnected = false;
@@ -54,9 +57,9 @@ const connectDB = async () => {
     await mongoose.connect(MONGODB_URI);
     isConnected = true;
     const dbName = mongoose.connection?.db?.databaseName;
-    console.log(`Connected to database: ${dbName}`);
+    logger.info({ dbName }, `Connected to database`);
   } catch (err) {
-    console.error('MongoDB connection error:', err);
+    logger.error({ err }, 'MongoDB connection error');
     throw err;
   }
 };
@@ -64,7 +67,6 @@ const connectDB = async () => {
 const handler = async (event: any, context: any) => {
   context.callbackWaitsForEmptyEventLoop = false;
   await connectDB();
-  // Ensure binary responses (e.g., Excel .xlsx) are encoded correctly through API Gateway
   const serverlessHandler = serverless(app, {
     binary: [
       'application/octet-stream',
@@ -77,7 +79,7 @@ const handler = async (event: any, context: any) => {
 if (process.env.AWS_LAMBDA_FUNCTION_NAME === undefined) {
   connectDB().then(() => {
     app.listen(PORT, () => {
-      console.log(`Server running locally on port ${PORT}`);
+      logger.info({ port: PORT }, 'Server running locally');
     });
   });
 }

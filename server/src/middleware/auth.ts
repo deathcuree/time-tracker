@@ -1,49 +1,42 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  process.exit(1);
-}
-
-interface JwtPayload {
-  userId: string;
-}
+import { tryVerifyToken } from '../utils/jwt.js';
+import { error as errorResponse } from '../utils/response.js';
+import { logger } from '../utils/logger.js';
 
 export const auth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const token = req.cookies.token;
-    
-    if (!token) {
-      res.status(401).json({ message: 'Authentication required' });
-      return;
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    const user = await User.findById(decoded.userId);
-
-    if (!user) {
-      res.status(401).json({ message: 'User not found' });
-      return;
-    }
-
-    req.user = user;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Invalid token' });
+  const token = req.cookies?.token;
+  if (!token) {
+    errorResponse(res, 401, 'Authentication required');
+    return;
   }
+
+  const payload = tryVerifyToken(token);
+  if (!payload?.userId) {
+    errorResponse(res, 401, 'Invalid token');
+    return;
+  }
+
+  const user = await User.findById(payload.userId);
+  if (!user) {
+    errorResponse(res, 401, 'User not found');
+    return;
+  }
+
+  req.user = user;
+  return next();
 };
 
-export const isAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const isAdmin = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const req = _req as Request;
     if (req.user?.role !== 'admin') {
-      res.status(403).json({ message: 'Admin access required' });
+      errorResponse(res, 403, 'Admin access required');
       return;
     }
-    next();
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    return next();
+  } catch (err) {
+    logger.error({ err }, 'isAdmin middleware error');
+    errorResponse(res, 500, 'Server error');
   }
-}; 
+};

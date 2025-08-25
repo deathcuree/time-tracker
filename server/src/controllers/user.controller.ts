@@ -1,50 +1,50 @@
 import { Request, Response } from 'express';
-import { z } from 'zod';
-import User from '../models/User.js';
+import { created, error as errorResponse } from '../utils/response.js';
+import { createUser as createUserService } from '../services/user.service.js';
 
-const createUserSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  firstName: z.string().min(2, 'First name must be at least 2 characters'),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  role: z.enum(['user', 'admin']),
-  position: z.string().min(2, 'Position must be at least 2 characters'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
+export const createUser = async (req: Request, res: Response): Promise<void> => {
+  const { email, firstName, lastName, role, position, password } = req.body as {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    role?: 'user' | 'admin';
+    position?: string;
+    password?: string;
+  };
 
-export const createUser = async (req: Request, res: Response) => {
+  // Basic guard validations; detailed validation is handled by route middlewares.
+  if (!email || !firstName || !lastName || !password || !role || !position) {
+    errorResponse(res, 400, 'Validation error', {
+      email: !email ? 'Email is required' : undefined,
+      firstName: !firstName ? 'First name is required' : undefined,
+      lastName: !lastName ? 'Last name is required' : undefined,
+      password: !password ? 'Password is required' : undefined,
+      role: !role ? 'Role is required' : undefined,
+      position: !position ? 'Position is required' : undefined,
+    });
+    return;
+  }
+
   try {
-    const validatedData = createUserSchema.parse(req.body);
-
-    const existingUser = await User.findOne({ email: validatedData.email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User with this email already exists' });
-    }
-
-    const user = new User({
-      email: validatedData.email,
-      firstName: validatedData.firstName,
-      lastName: validatedData.lastName,
-      password: validatedData.password,
-      role: validatedData.role,
-      position: validatedData.position,
+    const user = await createUserService({
+      email,
+      firstName,
+      lastName,
+      role,
+      position,
+      password,
     });
 
-    await user.save();
-
-    const { password: _, ...userResponse } = user.toObject();
-
-    res.status(201).json({
+    const { password: _omit, ...userResponse } = user.toObject();
+    created(res, {
       message: 'User created successfully',
       user: userResponse,
     });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        message: 'Validation error', 
-        errors: error.errors 
-      });
+  } catch (e: any) {
+    if (e instanceof Error && /exists|registered|duplicate/i.test(e.message)) {
+      errorResponse(res, 400, 'User with this email already exists');
+      return;
     }
-    
-    res.status(500).json({ message: 'Error creating user' });
+    errorResponse(res, 500, 'Error creating user');
   }
-}; 
+};

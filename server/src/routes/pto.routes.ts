@@ -1,8 +1,9 @@
-import express, { Router, Request, Response } from 'express';
+import express, { Router } from 'express';
 import { body } from 'express-validator';
 import { createRequest, getUserRequests, getAllRequests, updateRequestStatus, getMonthlyRequestCount, getYearlyPTOHours } from '../controllers/pto.controller.js';
 import { auth, isAdmin } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validate.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
 
@@ -14,19 +15,13 @@ const ptoRequestValidation = [
   body('reason').trim().notEmpty().withMessage('Reason is required')
 ];
 
-router.post('/request', ptoRequestValidation, validateRequest, createRequest);
-router.get('/user', getUserRequests);
-router.get('/all', isAdmin, getAllRequests);
-router.patch('/request/:requestId', isAdmin, (req: Request, res: Response) => {
-  return updateRequestStatus(req as any, res);
-});
+router.post('/request', ptoRequestValidation, validateRequest, asyncHandler(createRequest));
+router.get('/user', asyncHandler(getUserRequests));
+router.get('/all', isAdmin, asyncHandler(getAllRequests));
+router.patch('/request/:requestId', isAdmin, asyncHandler(updateRequestStatus as any));
 
-router.get('/user/month/:year/:month', auth, (req: Request, res: Response) => {
-  return getMonthlyRequestCount(req, res);
-});
+router.get('/user/month/:year/:month', auth, asyncHandler(getMonthlyRequestCount));
 
-router.get('/user/year/:year', auth, (req: Request, res: Response) => {
-  return getYearlyPTOHours(req, res);
-});
+router.get('/user/year/:year', auth, asyncHandler(getYearlyPTOHours));
 
-export default router; 
+export default router;
