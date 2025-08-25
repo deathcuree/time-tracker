@@ -9,7 +9,7 @@ const MONTHLY_PTO_HOURS = 16;
 
 export async function createPTORequest(
   userId: string,
-  input: { date: string; hours: number; reason: string }
+  input: { date: string; hours: number; reason: string },
 ): Promise<IPTORequest> {
   try {
     if (!isValidObjectId(userId)) {
@@ -43,14 +43,23 @@ export async function createPTORequest(
       userId: new Types.ObjectId(userId),
       status: 'approved',
       $expr: {
-        $and: [{ $eq: [{ $month: '$date' }, requestMonth + 1] }, { $eq: [{ $year: '$date' }, requestYear] }],
+        $and: [
+          { $eq: [{ $month: '$date' }, requestMonth + 1] },
+          { $eq: [{ $year: '$date' }, requestYear] },
+        ],
       },
     });
 
     const hoursUsedThisMonth = existingApprovedThisMonth.reduce((total, r) => total + r.hours, 0);
     if (hoursUsedThisMonth + input.hours > MONTHLY_PTO_HOURS) {
-      const monthName = new Date(requestYear, requestMonth).toLocaleString('default', { month: 'long', year: 'numeric' });
-      throw createError(400, `You have ${MONTHLY_PTO_HOURS - hoursUsedThisMonth} PTO hours remaining for ${monthName}`);
+      const monthName = new Date(requestYear, requestMonth).toLocaleString('default', {
+        month: 'long',
+        year: 'numeric',
+      });
+      throw createError(
+        400,
+        `You have ${MONTHLY_PTO_HOURS - hoursUsedThisMonth} PTO hours remaining for ${monthName}`,
+      );
     }
 
     const ptoRequest = new PTORequest({
@@ -105,7 +114,9 @@ export async function getUserPTORequests(userId: string, search?: string) {
 
     return requests.map((r) => ({
       ...r.toObject(),
-      userName: r.userId ? `${(r.userId as any).firstName} ${(r.userId as any).lastName}` : 'Unknown User',
+      userName: r.userId
+        ? `${(r.userId as any).firstName} ${(r.userId as any).lastName}`
+        : 'Unknown User',
       userEmail: (r.userId as any).email || 'No Email',
     }));
   } catch (err) {
@@ -117,7 +128,7 @@ export async function getUserPTORequests(userId: string, search?: string) {
 export async function updatePTORequestStatus(
   requestId: string,
   approverId: string,
-  status: 'approved' | 'denied'
+  status: 'approved' | 'denied',
 ) {
   try {
     if (!['approved', 'denied'].includes(status)) {
@@ -130,9 +141,10 @@ export async function updatePTORequestStatus(
       throw createError(400, 'Invalid approverId');
     }
 
-    const ptoRequest = (await PTORequest.findById(requestId).populate('userId', 'firstName lastName email')) as
-      | IPTORequest
-      | null;
+    const ptoRequest = (await PTORequest.findById(requestId).populate(
+      'userId',
+      'firstName lastName email',
+    )) as IPTORequest | null;
     if (!ptoRequest) {
       throw createError(404, 'PTO request not found');
     }
@@ -142,13 +154,17 @@ export async function updatePTORequestStatus(
     ptoRequest.approvalDate = new Date();
 
     if (ptoRequest.userId) {
-      ptoRequest.userName = `${(ptoRequest.userId as any).firstName} ${(ptoRequest.userId as any).lastName}`;
+      ptoRequest.userName = `${(ptoRequest.userId as any).firstName} ${
+        (ptoRequest.userId as any).lastName
+      }`;
       ptoRequest.userEmail = (ptoRequest.userId as any).email;
     }
 
     await ptoRequest.save();
 
-    const updated = await PTORequest.findById(requestId).populate('userId', 'firstName lastName email').exec();
+    const updated = await PTORequest.findById(requestId)
+      .populate('userId', 'firstName lastName email')
+      .exec();
     return updated;
   } catch (err) {
     if ((createError as any).isHttpError?.(err)) throw err;

@@ -9,19 +9,18 @@ import {
   listTimeLogs,
   exportTimeLogsToXlsx,
 } from '../services/admin.service.js';
+import {
+  TimeEntriesParams,
+  TimeEntriesQuery,
+  TimeReportQuery,
+  UpdateUserRoleBody,
+  UpdateUserRoleParams,
+} from '../types/admin.js';
 
 export const getAllUsers = async (_req: Request, res: Response): Promise<void> => {
   const users = await listAllUsers();
   success(res, users);
 };
-
-interface TimeEntriesParams {
-  userId: string;
-}
-interface TimeEntriesQuery {
-  startDate?: string;
-  endDate?: string;
-}
 
 export const getUserTimeEntries = async (
   req: Request<TimeEntriesParams, {}, {}, TimeEntriesQuery>,
@@ -33,11 +32,6 @@ export const getUserTimeEntries = async (
   success(res, entries);
 };
 
-interface TimeReportQuery {
-  startDate: string;
-  endDate: string;
-}
-
 export const getTimeReport = async (
   req: Request<{}, {}, {}, TimeReportQuery>,
   res: Response,
@@ -46,13 +40,6 @@ export const getTimeReport = async (
   const report = await timeReport(startDate, endDate);
   success(res, report);
 };
-
-interface UpdateUserRoleParams {
-  userId: string;
-}
-interface UpdateUserRoleBody {
-  role: 'user' | 'admin';
-}
 
 export const updateUserRole = async (
   req: Request<UpdateUserRoleParams, {}, UpdateUserRoleBody>,

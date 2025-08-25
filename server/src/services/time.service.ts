@@ -66,7 +66,7 @@ export async function clockOutForUser(userId: string): Promise<ITimeEntry> {
 
 export async function getEntriesForUser(
   userId: string,
-  options: { startDate?: string; endDate?: string; page?: number; limit?: number } = {}
+  options: { startDate?: string; endDate?: string; page?: number; limit?: number } = {},
 ): Promise<{ items: ITimeEntry[]; pagination: { total: number; page: number; limit: number } }> {
   try {
     if (!isValidObjectId(userId)) {
@@ -100,7 +100,9 @@ export async function getEntriesForUser(
   }
 }
 
-export async function getStatsForUser(userId: string): Promise<{ totalHoursToday: number; totalHoursThisWeek: number }> {
+export async function getStatsForUser(
+  userId: string,
+): Promise<{ totalHoursToday: number; totalHoursThisWeek: number }> {
   try {
     if (!isValidObjectId(userId)) {
       throw createError(400, 'Invalid userId');
@@ -112,7 +114,6 @@ export async function getStatsForUser(userId: string): Promise<{ totalHoursToday
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const startOfWeek = new Date(today);
-    // ISO week start (Mon)
     startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
     startOfWeek.setHours(0, 0, 0, 0);
 
@@ -169,7 +170,7 @@ export async function getStatsForUser(userId: string): Promise<{ totalHoursToday
 }
 
 export async function getCurrentStatusForUser(
-  userId: string
+  userId: string,
 ): Promise<{ isClockedIn: boolean; activeEntry: ITimeEntry | null }> {
   try {
     if (!isValidObjectId(userId)) {

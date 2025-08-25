@@ -65,7 +65,13 @@ export async function timeReport(startDate: string, endDate: string): Promise<Ti
           clockOut: { $ne: null },
         },
       },
-      { $group: { _id: '$userId', totalHours: { $sum: '$totalHours' }, entries: { $push: '$$ROOT' } } },
+      {
+        $group: {
+          _id: '$userId',
+          totalHours: { $sum: '$totalHours' },
+          entries: { $push: '$$ROOT' },
+        },
+      },
       { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
       { $unwind: '$user' },
       { $project: { 'user.password': 0 } },
@@ -81,7 +87,9 @@ export async function updateRole(userId: string, role: 'user' | 'admin'): Promis
     if (!['user', 'admin'].includes(role)) throw createError(400, 'Invalid role');
     if (!isValidObjectId(userId)) throw createError(400, 'Invalid userId');
 
-    const updated = (await User.findByIdAndUpdate(userId, { role }, { new: true }).select('-password')) as IUser | null;
+    const updated = (await User.findByIdAndUpdate(userId, { role }, { new: true }).select(
+      '-password',
+    )) as IUser | null;
     if (!updated) throw createError(404, 'User not found');
     return updated;
   } catch (err) {
@@ -139,7 +147,10 @@ export async function exportPTORequestsTable(args: {
       Date: new Date(r.date).toISOString().split('T')[0],
       Hours: r.hours,
       Reason: r.reason,
-      Status: String(r.status || '').charAt(0).toUpperCase() + String(r.status || '').slice(1),
+      Status:
+        String(r.status || '')
+          .charAt(0)
+          .toUpperCase() + String(r.status || '').slice(1),
     }));
 
     const headers = ['Employee', 'Date', 'Hours', 'Reason', 'Status'];
@@ -177,7 +188,6 @@ export async function listTimeLogs(args: {
 
     const match: any = {};
 
-    // Date range: prefer month/year, else explicit start/end
     let rangeStart: Date | undefined;
     let rangeEnd: Date | undefined;
 
@@ -271,7 +281,7 @@ export async function listTimeLogs(args: {
           ],
           total: [{ $count: 'count' }],
         },
-      }
+      },
     );
 
     const aggResult = await TimeEntry.aggregate(pipeline);
@@ -303,13 +313,26 @@ export async function exportTimeLogsToXlsx(args: {
       const ms = new Date(d).getTime();
       return new Date(ms - tzOffsetMinutes * 60 * 1000);
     };
-    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     const formatDateLocal = (d?: Date | null) => {
       if (!d) return '';
       const ld = toLocal(d)!;
       const yyyy = ld.getUTCFullYear();
       const mmm = monthNames[ld.getUTCMonth()];
-      const dd = String(ld.getUTCDate()).padStart(2,'0');
+      const dd = String(ld.getUTCDate()).padStart(2, '0');
       return `${mmm} ${dd}, ${yyyy}`;
     };
     const formatTimeLocal = (d?: Date | null) => {
@@ -320,7 +343,7 @@ export async function exportTimeLogsToXlsx(args: {
       const ampm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12;
       if (hours === 0) hours = 12;
-      const mm = String(minutes).padStart(2,'0');
+      const mm = String(minutes).padStart(2, '0');
       return `${hours}:${mm} ${ampm}`;
     };
     const formatHoursWorked = (hours?: number | null) => {
@@ -363,7 +386,6 @@ export async function exportTimeLogsToXlsx(args: {
       { $match: match },
       { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
       { $unwind: '$user' },
-      // If "search" provided, filter by user fields or date string similar to listTimeLogs for parity
       ...(search && search.trim().length > 0
         ? [
             {
@@ -403,7 +425,12 @@ export async function exportTimeLogsToXlsx(args: {
             $round: [
               {
                 $divide: [
-                  { $subtract: [{ $cond: [{ $eq: ['$clockOut', null] }, '$$NOW', '$clockOut'] }, '$clockIn'] },
+                  {
+                    $subtract: [
+                      { $cond: [{ $eq: ['$clockOut', null] }, '$$NOW', '$clockOut'] },
+                      '$clockIn',
+                    ],
+                  },
                   1000 * 60 * 60,
                 ],
               },
@@ -426,11 +453,22 @@ export async function exportTimeLogsToXlsx(args: {
         'Clock In': item.clockIn ? formatTimeLocal(item.clockIn) : '',
         'Clock Out': item.clockOut ? formatTimeLocal(item.clockOut) : '',
         'Hours Worked': formatHoursWorked(item.hours),
-        Status: String(item.status || '').charAt(0).toUpperCase() + String(item.status || '').slice(1),
+        Status:
+          String(item.status || '')
+            .charAt(0)
+            .toUpperCase() + String(item.status || '').slice(1),
       };
     });
 
-    const headers = ['Employee', 'Email', 'Date', 'Clock In', 'Clock Out', 'Hours Worked', 'Status'];
+    const headers = [
+      'Employee',
+      'Email',
+      'Date',
+      'Clock In',
+      'Clock Out',
+      'Hours Worked',
+      'Status',
+    ];
     const sheetName =
       year !== undefined && month !== undefined
         ? `Time Logs ${Number(year)}-${String(Number(month) + 1).padStart(2, '0')}`

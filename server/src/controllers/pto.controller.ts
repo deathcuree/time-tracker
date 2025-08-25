@@ -9,8 +9,12 @@ import {
   getYearlyPTOHoursForUser,
 } from '../services/pto.service.js';
 import { IPTORequestBody } from '../types/models.js';
+import { UpdateRequestBody, UpdateRequestParams } from '../types/pto.js';
 
-export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: Response): Promise<void> => {
+export const createRequest = async (
+  req: Request<{}, {}, IPTORequestBody>,
+  res: Response,
+): Promise<void> => {
   const userId = req.user?._id?.toString();
   if (!userId) {
     errorResponse(res, 401, 'Authentication required');
@@ -34,16 +38,9 @@ export const getUserRequests = async (req: Request, res: Response): Promise<void
   success(res, requests);
 };
 
-export interface UpdateRequestParams {
-  requestId: string;
-}
-export interface UpdateRequestBody {
-  status: 'approved' | 'denied';
-}
-
 export const updateRequestStatus = async (
   req: Request<UpdateRequestParams, {}, UpdateRequestBody>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const approverId = req.user?._id?.toString();
   if (!approverId) {
@@ -81,7 +78,11 @@ export const getMonthlyRequestCount = async (req: Request, res: Response): Promi
   }
 
   const { year, month } = req.params as { year: string; month: string };
-  const result = await getMonthlyRequestCountForUser(userId, parseInt(year, 10), parseInt(month, 10));
+  const result = await getMonthlyRequestCountForUser(
+    userId,
+    parseInt(year, 10),
+    parseInt(month, 10),
+  );
   success(res, result);
 };
 
