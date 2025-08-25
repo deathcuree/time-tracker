@@ -25,7 +25,7 @@ interface TimeEntriesQuery {
 
 export const getUserTimeEntries = async (
   req: Request<TimeEntriesParams, {}, {}, TimeEntriesQuery>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const { userId } = req.params;
   const { startDate, endDate } = req.query;
@@ -40,7 +40,7 @@ interface TimeReportQuery {
 
 export const getTimeReport = async (
   req: Request<{}, {}, {}, TimeReportQuery>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const { startDate, endDate } = req.query;
   const report = await timeReport(startDate, endDate);
@@ -56,7 +56,7 @@ interface UpdateUserRoleBody {
 
 export const updateUserRole = async (
   req: Request<UpdateUserRoleParams, {}, UpdateUserRoleBody>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const { userId } = req.params;
   const { role } = req.body;
@@ -66,12 +66,15 @@ export const updateUserRole = async (
 
 export const exportTableData = async (
   req: Request<{}, {}, {}, { search?: string; status?: 'pending' | 'approved' | 'denied' | 'all' }>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const { search, status } = req.query;
   const { buffer, filename } = await exportPTORequestsTable({ search, status });
 
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.setHeader('Content-Transfer-Encoding', 'binary');
   res.setHeader('Cache-Control', 'no-store, no-transform');
@@ -80,37 +83,50 @@ export const exportTableData = async (
 };
 
 export const getTimeLogs = async (
-  req: Request<{}, {}, {}, {
-    search?: string;
-    status?: 'all' | 'active' | 'completed';
-    month?: string;
-    year?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: string;
-    limit?: string;
-  }>,
-  res: Response
+  req: Request<
+    {},
+    {},
+    {},
+    {
+      search?: string;
+      status?: 'all' | 'active' | 'completed';
+      month?: string;
+      year?: string;
+      startDate?: string;
+      endDate?: string;
+      page?: string;
+      limit?: string;
+    }
+  >,
+  res: Response,
 ): Promise<void> => {
   const data = await listTimeLogs(req.query);
   success(res, data);
 };
 
 export const exportTimeLogs = async (
-  req: Request<{}, {}, {}, {
-    search?: string;
-    status?: 'all' | 'active' | 'completed';
-    month?: string;
-    year?: string;
-    startDate?: string;
-    endDate?: string;
-    tzOffset?: string;
-  }>,
-  res: Response
+  req: Request<
+    {},
+    {},
+    {},
+    {
+      search?: string;
+      status?: 'all' | 'active' | 'completed';
+      month?: string;
+      year?: string;
+      startDate?: string;
+      endDate?: string;
+      tzOffset?: string;
+    }
+  >,
+  res: Response,
 ): Promise<void> => {
   const { buffer, filename } = await exportTimeLogsToXlsx(req.query);
 
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.setHeader('Content-Transfer-Encoding', 'binary');
   res.setHeader('Cache-Control', 'no-store, no-transform');

@@ -7,13 +7,6 @@ import { createUserValidation } from '../validators/user.validator.js';
 
 const router = express.Router();
 
-router.post(
-  '/',
-  auth,
-  isAdmin,
-  createUserValidation,
-  validateRequest,
-  asyncHandler(createUser)
-);
+router.post('/', auth, isAdmin, createUserValidation, validateRequest, asyncHandler(createUser));
 
 export default router;
