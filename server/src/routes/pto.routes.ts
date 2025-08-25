@@ -1,18 +1,19 @@
-import express, { Router, Request, Response } from 'express';
-import { body } from 'express-validator';
-import { createRequest, getUserRequests, getAllRequests, updateRequestStatus, getMonthlyRequestCount, getYearlyPTOHours } from '../controllers/pto.controller.js';
+import { Router, Request, Response } from 'express';
+import {
+  createRequest,
+  getUserRequests,
+  getAllRequests,
+  updateRequestStatus,
+  getMonthlyRequestCount,
+  getYearlyPTOHours,
+} from '../controllers/pto.controller.js';
 import { auth, isAdmin } from '../middleware/auth.js';
 import { validateRequest } from '../middleware/validate.js';
+import { ptoRequestValidation } from '../validators/pto.validator.js';
 
 const router = Router();
 
 router.use(auth);
-
-const ptoRequestValidation = [
-  body('date').isISO8601().withMessage('Invalid date'),
-  body('hours').isInt({ min: 1, max: 8 }).withMessage('Hours must be between 1 and 8'),
-  body('reason').trim().notEmpty().withMessage('Reason is required')
-];
 
 router.post('/request', ptoRequestValidation, validateRequest, createRequest);
 router.get('/user', getUserRequests);
@@ -29,4 +30,4 @@ router.get('/user/year/:year', auth, (req: Request, res: Response) => {
   return getYearlyPTOHours(req, res);
 });
 
-export default router; 
+export default router;

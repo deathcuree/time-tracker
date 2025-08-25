@@ -1,210 +1,85 @@
 import { Request, Response } from 'express';
-import PTORequest from '../models/PTORequest.js';
-import User from '../models/User.js';
-import { IPTORequest, IPTORequestBody } from '../types/models.js';
+import { IPTORequestBody } from '../types/models.js';
+import { PTOService } from '../services/pto.service.js';
+import { UpdateRequestBody, UpdateRequestParams } from '../types/pto.js';
 
-const MONTHLY_PTO_HOURS = 16;
-
-const createDateSearchConditions = (searchStr: string) => {
-  const monthMap: { [key: string]: string } = {
-    'january': '01', 'february': '02', 'march': '03', 'april': '04',
-    'may': '05', 'june': '06', 'july': '07', 'august': '08',
-    'september': '09', 'october': '10', 'november': '11', 'december': '12'
-  };
-
-  const searchLower = searchStr.toLowerCase();
-  const conditions = [];
-
-  for (const [monthName, monthNum] of Object.entries(monthMap)) {
-    if (monthName.includes(searchLower) || searchLower.includes(monthName)) {
-      conditions.push({
-        $expr: {
-          $eq: [
-            { $month: '$date' },
-            parseInt(monthNum)
-          ]
-        }
-      });
-    }
-  }
-
-  conditions.push({
-    $expr: {
-      $regexMatch: {
-        input: {
-          $dateToString: {
-            date: '$date',
-            format: '%Y-%m-%d'
-          }
-        },
-        regex: searchStr,
-        options: 'i'
-      }
-    }
-  });
-
-  return conditions;
-};
-
-export const createRequest = async (req: Request<{}, {}, IPTORequestBody>, res: Response): Promise<void> => {
+/**
+ * POST /api/pto
+ * Creates a PTO request. Signature and response are preserved.
+ */
+export const createRequest = async (
+  req: Request<{}, {}, IPTORequestBody>,
+  res: Response,
+): Promise<void> => {
   try {
-    const { date, hours, reason } = req.body;
-    const user = await User.findById(req.user!._id);
-
-    if (!user) {
-      res.status(404).json({ message: 'User not found' });
-      return;
-    }
-
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    const requestDate = new Date(date);
-
-    if (requestDate < now) {
-      res.status(400).json({ message: 'Request date must be in the future' });
-      return;
-    }
-
-    if (hours < 1 || hours > 8) {
-      res.status(400).json({ message: 'PTO hours must be between 1 and 8' });
-      return;
-    }
-
-    const requestMonth = requestDate.getMonth();
-    const requestYear = requestDate.getFullYear();
-    
-    const existingRequestsThisMonth = await PTORequest.find({
-      userId: user._id,
-      status: 'approved',
-      $expr: {
-        $and: [
-          { $eq: [{ $month: '$date' }, requestMonth + 1] },
-          { $eq: [{ $year: '$date' }, requestYear] }
-        ]
-      }
-    });
-
-    const hoursUsedThisMonth = existingRequestsThisMonth.reduce((total, request) => total + request.hours, 0);
-
-    if (hoursUsedThisMonth + hours > MONTHLY_PTO_HOURS) {
-      res.status(400).json({ 
-        message: `You have ${MONTHLY_PTO_HOURS - hoursUsedThisMonth} PTO hours remaining for ${new Date(requestYear, requestMonth).toLocaleString('default', { month: 'long', year: 'numeric' })}` 
-      });
-      return;
-    }
-
-    const ptoRequest = new PTORequest({
-      userId: user._id,
-      userName: user.name,
-      userEmail: user.email,
-      date: requestDate,
-      hours,
-      reason,
-      expiryYear: requestYear
-    }) as IPTORequest;
-
-    await ptoRequest.save();
-    res.status(201).json(ptoRequest);
+    const created = await PTOService.createRequest(req.user!._id.toString(), req.body);
+    res.status(201).json(created);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: (error as Error).message });
+    const err = error as any;
+    const status = typeof err?.status === 'number' ? err.status : 500;
+    const message = status === 500 ? 'Server error' : err.message || 'Request failed';
+    res.status(status).json({ message, error: (err as Error).message });
   }
 };
 
+/**
+ * GET /api/pto/my
+ * Returns PTO requests for the authenticated user. Signature preserved.
+ */
 export const getUserRequests = async (req: Request, res: Response): Promise<void> => {
   try {
     const { search } = req.query;
-    let query: any = { userId: req.user!._id };
-
-    if (search) {
-      const searchStr = (search as string).toLowerCase();
-      const dateConditions = createDateSearchConditions(searchStr);
-
-      query = {
-        $and: [
-          { userId: req.user!._id },
-          {
-            $or: [
-              { reason: { $regex: searchStr, $options: 'i' } },
-              { status: { $regex: searchStr, $options: 'i' } },
-              { hours: isNaN(Number(search)) ? null : Number(search) },
-              ...dateConditions
-            ].filter(condition => condition !== null)
-          }
-        ]
-      };
-    }
-
-    const requests = await PTORequest.find(query)
-      .populate('userId', 'firstName lastName email')
-      .sort({ createdAt: -1 }) as IPTORequest[];
-      
-    const transformedRequests = requests.map(request => ({
-      ...request.toObject(),
-      userName: request.userId ? `${(request.userId as any).firstName} ${(request.userId as any).lastName}` : 'Unknown User',
-      userEmail: (request.userId as any).email || 'No Email'
-    }));
-
+    const transformedRequests = await PTOService.getUserRequests(
+      req.user!._id.toString(),
+      search as string | undefined,
+    );
     res.json(transformedRequests);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
 
-export interface UpdateRequestParams {
-  requestId: string;
-}
-
-export interface UpdateRequestBody {
-  status: 'approved' | 'denied';
-}
-
+/**
+ * PATCH /api/pto/:requestId/status
+ * Admin only. Updates PTO request status. Signature preserved.
+ */
 export const updateRequestStatus = async (
   req: Request<UpdateRequestParams, {}, UpdateRequestBody>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const { status } = req.body;
     const { requestId } = req.params;
-
-    if (!['approved', 'denied'].includes(status)) {
-      res.status(400).json({ message: 'Invalid status' });
-      return;
-    }
-
-    const ptoRequest = await PTORequest.findById(requestId)
-      .populate('userId', 'firstName lastName email') as IPTORequest | null;
-
-    if (!ptoRequest) {
-      res.status(404).json({ message: 'PTO request not found' });
-      return;
-    }
 
     if (req.user!.role !== 'admin') {
       res.status(403).json({ message: 'Not authorized' });
       return;
     }
 
-    ptoRequest.status = status;
-    ptoRequest.approvedBy = req.user!._id;
-    ptoRequest.approvalDate = new Date();
-    
-    if (ptoRequest.userId) {
-      ptoRequest.userName = `${(ptoRequest.userId as any).firstName} ${(ptoRequest.userId as any).lastName}`;
-      ptoRequest.userEmail = (ptoRequest.userId as any).email;
-    }
-
-    await ptoRequest.save();
-    
-    const updatedRequest = await PTORequest.findById(requestId)
-      .populate('userId', 'firstName lastName email')
-      .exec();
-      
+    const updatedRequest = await PTOService.updateRequestStatus(
+      requestId,
+      req.user!._id.toString(),
+      status,
+    );
     res.json(updatedRequest);
   } catch (error) {
+    const err = error as any;
+    if (err?.status === 400) {
+      res.status(400).json({ message: err.message });
+      return;
+    }
+    if (err?.status === 404) {
+      res.status(404).json({ message: err.message });
+      return;
+    }
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
 
+/**
+ * GET /api/pto
+ * Admin: list all PTO requests with optional search. Signature preserved.
+ */
 export const getAllRequests = async (req: Request, res: Response): Promise<void> => {
   try {
     if (req.user!.role !== 'admin') {
@@ -213,80 +88,17 @@ export const getAllRequests = async (req: Request, res: Response): Promise<void>
     }
 
     const { search } = req.query;
-    let pipeline: any[] = [
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'userDetails'
-        }
-      },
-      {
-        $unwind: '$userDetails'
-      }
-    ];
-
-    if (search) {
-      const searchStr = (search as string).toLowerCase();
-      const searchTerms = searchStr.split(/\s+/).filter(term => term.length > 0);
-      const dateConditions = createDateSearchConditions(searchStr);
-
-      if (searchTerms.length > 0) {
-        type SearchCondition = {
-          $or?: Array<{ [key: string]: any }>;
-          hours?: number;
-          $expr?: any;
-        };
-        
-        const searchConditions: SearchCondition[] = searchTerms.map(term => ({
-          $or: [
-            { reason: { $regex: term, $options: 'i' } },
-            { status: { $regex: term, $options: 'i' } },
-            { 'userDetails.firstName': { $regex: term, $options: 'i' } },
-            { 'userDetails.lastName': { $regex: term, $options: 'i' } },
-            { 'userDetails.email': { $regex: term, $options: 'i' } }
-          ]
-        }));
-
-        if (!isNaN(Number(searchStr))) {
-          searchConditions.push({ hours: Number(searchStr) });
-        }
-
-        searchConditions.push(...dateConditions);
-
-        pipeline.push({
-          $match: {
-            $or: searchConditions
-          }
-        });
-      }
-    }
-
-    pipeline.push({
-      $sort: { createdAt: -1 }
-    });
-
-    const requests = await PTORequest.aggregate(pipeline);
-
-    const transformedRequests = requests.map(request => ({
-      ...request,
-      userId: {
-        _id: request.userDetails._id,
-        firstName: request.userDetails.firstName,
-        lastName: request.userDetails.lastName,
-        email: request.userDetails.email
-      },
-      userName: `${request.userDetails.firstName} ${request.userDetails.lastName}`,
-      userEmail: request.userDetails.email
-    }));
-
-    res.json(transformedRequests);
+    const results = await PTOService.getAllRequests(search as string | undefined);
+    res.json(results);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
 
+/**
+ * GET /api/pto/monthly-count/:year/:month
+ * Returns total approved PTO hours for the month for the authenticated user. Signature preserved.
+ */
 export const getMonthlyRequestCount = async (req: Request, res: Response): Promise<void> => {
   try {
     const { year, month } = req.params;
@@ -298,23 +110,21 @@ export const getMonthlyRequestCount = async (req: Request, res: Response): Promi
       return;
     }
 
-    const startDate = new Date(yearNum, monthNum - 1, 1);
-    const endDate = new Date(yearNum, monthNum, 0);
-
-    const requests = await PTORequest.find({
-      userId: req.user!._id,
-      status: 'approved',
-      date: { $gte: startDate, $lte: endDate }
-    });
-
-    const totalHours = requests.reduce((total, request) => total + request.hours, 0);
-
-    res.json({ count: totalHours });
+    const result = await PTOService.getMonthlyRequestCount(
+      req.user!._id.toString(),
+      yearNum,
+      monthNum,
+    );
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
 
+/**
+ * GET /api/pto/yearly/:year
+ * Returns yearly PTO stats for the authenticated user. Signature preserved.
+ */
 export const getYearlyPTOHours = async (req: Request, res: Response): Promise<void> => {
   try {
     const year = parseInt(req.params.year);
@@ -324,25 +134,9 @@ export const getYearlyPTOHours = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const startDate = new Date(year, 0, 1);
-    const endDate = new Date(year, 11, 31);
-
-    const requests = await PTORequest.find({
-      userId: req.user!._id,
-      status: 'approved',
-      date: { $gte: startDate, $lte: endDate }
-    });
-
-    const totalHoursUsed = requests.reduce((total, request) => total + request.hours, 0);
-    const yearlyLimit = MONTHLY_PTO_HOURS * 12;
-    const remainingHours = yearlyLimit - totalHoursUsed;
-
-    res.json({
-      totalHoursUsed,
-      yearlyLimit,
-      remainingHours
-    });
+    const stats = await PTOService.getYearlyPTOHours(req.user!._id.toString(), year);
+    res.json(stats);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
-}; 
+};
