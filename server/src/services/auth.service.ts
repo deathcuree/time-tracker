@@ -20,11 +20,11 @@ export async function registerUser(input: { firstName: string; lastName: string;
 export async function authenticateUser(input: { email: string; password: string }): Promise<IUser> {
   const user = await User.findOne({ email: input.email }) as IUser | null;
   if (!user) {
-    throw new Error('Invalid credentials');
+    throw new Error('User not found.');
   }
   const ok = await user.comparePassword(input.password);
   if (!ok) {
-    throw new Error('Invalid credentials');
+    throw new Error('Invalid password.');
   }
   return user;
 }
