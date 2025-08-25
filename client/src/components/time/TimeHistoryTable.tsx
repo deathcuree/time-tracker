@@ -7,6 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MonthYearFilter } from './MonthYearFilter';
 import { StatusFilter } from './StatusFilter';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -53,13 +64,29 @@ const TimeEntryRow = memo(({ entry, onDelete }: { entry: TimeEntry; onDelete: (i
         <StatusBadge status={getStatus(entry)} />
       </TableCell>
       <TableCell className="text-center">
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => onDelete(entry.id ?? (entry as any)._id)}
-        >
-          Delete
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm">
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete time entry?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the selected time entry.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => onDelete(entry.id ?? (entry as any)._id)}
+              >
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </TableCell>
     </TableRow>
   );
@@ -73,9 +100,8 @@ export const TimeHistoryTable: React.FC = () => {
   const currentMonth = new Date().getMonth();
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Delete this time entry? This action cannot be undone.')) {
-      deleteTimeEntry(id);
-    }
+    // Confirmation handled by AlertDialog; directly perform delete here.
+    deleteTimeEntry(id);
   };
 
   const [currentFilters, setCurrentFilters] = useState({
