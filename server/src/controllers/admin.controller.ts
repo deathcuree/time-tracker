@@ -1,50 +1,48 @@
 import { Request, Response } from 'express';
-import User from '../models/User.js';
-import TimeEntry from '../models/TimeEntry.js';
-import PTORequest from '../models/PTORequest.js';
-import { IUser, ITimeEntry } from '../types/models.js';
-import mongoose from 'mongoose';
-import * as XLSX from 'xlsx';
+import { IUser } from '../types/models.js';
+import { AdminService } from '../services/admin.service.js';
+import { ReportService } from '../services/report.service.js';
+import { UserManagementService } from '../services/userManagement.service.js';
+import {
+  TimeEntriesParams,
+  TimeEntriesQuery,
+  TimeReportEntry,
+  TimeReportQuery,
+  UpdateUserRoleBody,
+  UpdateUserRoleParams,
+} from '../types/admin.js';
+import { setExportHeaders } from '../utils/response.js';
 
+/**
+ * GET /api/admin/users
+ * Returns all users
+ */
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = await User.find().select('-password') as IUser[];
+    const users = await AdminService.getAllUsers();
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
 
-interface TimeEntriesParams {
-  userId: string;
-}
-
-interface TimeEntriesQuery {
-  startDate?: string;
-  endDate?: string;
-}
-
+/**
+ * GET /api/admin/users/:userId/time-entries
+ * Fetch time entries for a user with optional date range. Signature unchanged.
+ */
 export const getUserTimeEntries = async (
   req: Request<TimeEntriesParams, {}, {}, TimeEntriesQuery>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const { userId } = req.params;
     const { startDate, endDate } = req.query;
 
-    const query: { userId: mongoose.Types.ObjectId; date?: { $gte: Date; $lte: Date } } = {
-      userId: new mongoose.Types.ObjectId(userId)
-    };
-
-    if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
-    }
-
-    const timeEntries = await TimeEntry.find(query)
-      .sort({ date: -1 }) as ITimeEntry[];
+    const timeEntries = await AdminService.getUserTimeEntries({
+      userId,
+      startDate,
+      endDate,
+    });
 
     res.json(timeEntries);
   } catch (error) {
@@ -52,77 +50,33 @@ export const getUserTimeEntries = async (
   }
 };
 
-interface TimeReportQuery {
-  startDate: string;
-  endDate: string;
-}
-
-interface TimeReportEntry {
-  _id: mongoose.Types.ObjectId;
-  totalHours: number;
-  entries: ITimeEntry[];
-  user: IUser;
-}
-
+/**
+ * GET /api/admin/time-report
+ * Aggregated time report per user. Signature and response unchanged.
+ */
 export const getTimeReport = async (
   req: Request<{}, {}, {}, TimeReportQuery>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const { startDate, endDate } = req.query;
 
-    const timeEntries = await TimeEntry.aggregate<TimeReportEntry>([
-      {
-        $match: {
-          date: {
-            $gte: new Date(startDate),
-            $lte: new Date(endDate)
-          },
-          clockOut: { $ne: null }
-        }
-      },
-      {
-        $group: {
-          _id: '$userId',
-          totalHours: { $sum: '$totalHours' },
-          entries: { $push: '$$ROOT' }
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $unwind: '$user'
-      },
-      {
-        $project: {
-          'user.password': 0
-        }
-      }
-    ]);
+    const timeEntries = await AdminService.getTimeReport({ startDate, endDate });
 
-    res.json(timeEntries);
+    res.json(timeEntries as unknown as TimeReportEntry[]);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
 
-interface UpdateUserRoleParams {
-  userId: string;
-}
-
-interface UpdateUserRoleBody {
-  role: 'user' | 'admin';
-}
-
+/**
+ * PATCH /api/admin/users/:userId/role
+ * Keeps validation and response semantics identical.
+ * Note: Minimal business logic left here to avoid route breakage; can be moved later if needed.
+ */
 export const updateUserRole = async (
   req: Request<UpdateUserRoleParams, {}, UpdateUserRoleBody>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const { userId } = req.params;
@@ -133,11 +87,7 @@ export const updateUserRole = async (
       return;
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { role },
-      { new: true }
-    ).select('-password') as IUser | null;
+    const user = (await UserManagementService.updateUserRole(userId, role)) as IUser | null;
 
     if (!user) {
       res.status(404).json({ message: 'User not found' });
@@ -148,88 +98,30 @@ export const updateUserRole = async (
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
-}; 
+};
 
+/**
+ * GET /api/admin/pto/export
+ * Exports PTO table data to XLSX.
+ */
 export const exportTableData = async (
-  req: Request<{}, {}, {}, { search?: string; status?: 'pending' | 'approved' | 'denied' | 'all'; pagination?: string }>,
-  res: Response
+  req: Request<
+    {},
+    {},
+    {},
+    { search?: string; status?: 'pending' | 'approved' | 'denied' | 'all'; pagination?: string }
+  >,
+  res: Response,
 ): Promise<void> => {
   try {
-    const pipeline: any[] = [
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'userDetails'
-        }
-      },
-      { $unwind: '$userDetails' }
-    ];
-
     const { search, status } = req.query;
 
-    if (status && status !== 'all') {
-      pipeline.push({
-        $match: { status }
-      });
-    }
+    const { buffer, filename } = await ReportService.exportPTORequestsToXLSX({
+      search,
+      status,
+    });
 
-    if (search && typeof search === 'string' && search.trim().length > 0) {
-      const searchStr = search.toLowerCase().trim();
-
-      const orConditions: any[] = [
-        { reason: { $regex: searchStr, $options: 'i' } },
-        { status: { $regex: searchStr, $options: 'i' } },
-        { 'userDetails.firstName': { $regex: searchStr, $options: 'i' } },
-        { 'userDetails.lastName': { $regex: searchStr, $options: 'i' } },
-        { 'userDetails.email': { $regex: searchStr, $options: 'i' } },
-        {
-          $expr: {
-            $regexMatch: {
-              input: { $dateToString: { date: '$date', format: '%Y-%m-%d' } },
-              regex: searchStr,
-              options: 'i'
-            }
-          }
-        }
-      ];
-
-      const numeric = Number(searchStr);
-      if (!Number.isNaN(numeric)) {
-        orConditions.push({ hours: numeric });
-      }
-
-      pipeline.push({ $match: { $or: orConditions } });
-    }
-
-    pipeline.push({ $sort: { createdAt: -1 } });
-
-    const requests = await PTORequest.aggregate(pipeline);
-
-    const rows = requests.map((r: any) => ({
-      Employee: `${r.userDetails?.firstName ?? ''} ${r.userDetails?.lastName ?? ''}`.trim(),
-      Date: new Date(r.date).toISOString().split('T')[0],
-      Hours: r.hours,
-      Reason: r.reason,
-      Status: String(r.status || '').charAt(0).toUpperCase() + String(r.status || '').slice(1),
-    }));
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows, { header: ['Employee', 'Date', 'Hours', 'Reason', 'Status'] });
-    XLSX.utils.book_append_sheet(wb, ws, 'Export');
-
-    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' }) as Buffer;
-
-    const today = new Date().toISOString().slice(0, 10);
-    const filename = `table-export-${today}.xlsx`;
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Transfer-Encoding', 'binary');
-    res.setHeader('Cache-Control', 'no-store, no-transform');
-    res.setHeader('Pragma', 'no-cache');
-
+    setExportHeaders(res, filename);
     res.status(200).end(buffer);
   } catch (error) {
     res.status(500).json({ message: 'Failed to export data', error: (error as Error).message });
@@ -237,17 +129,22 @@ export const exportTableData = async (
 };
 
 export const getTimeLogs = async (
-  req: Request<{}, {}, {}, {
-    search?: string;
-    status?: 'all' | 'active' | 'completed';
-    month?: string;
-    year?: string;
-    startDate?: string;
-    endDate?: string;
-    page?: string;
-    limit?: string;
-  }>,
-  res: Response
+  req: Request<
+    {},
+    {},
+    {},
+    {
+      search?: string;
+      status?: 'all' | 'active' | 'completed';
+      month?: string;
+      year?: string;
+      startDate?: string;
+      endDate?: string;
+      page?: string;
+      limit?: string;
+    }
+  >,
+  res: Response,
 ): Promise<void> => {
   try {
     const {
@@ -261,334 +158,63 @@ export const getTimeLogs = async (
       limit = '10',
     } = req.query;
 
-    const pageNum = Math.max(1, Number(page) || 1);
-    const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
-    const skip = (pageNum - 1) * limitNum;
-
-    const match: any = {};
-
-    let rangeStart: Date | undefined;
-    let rangeEnd: Date | undefined;
-
-    if (year !== undefined && month !== undefined) {
-      const y = Number(year);
-      const m = Number(month);
-      rangeStart = new Date(y, m, 1, 0, 0, 0, 0);
-      rangeEnd = new Date(y, m + 1, 0, 23, 59, 59, 999);
-    } else if (startDate && endDate) {
-      rangeStart = new Date(startDate);
-      rangeEnd = new Date(endDate);
-    }
-
-    if (rangeStart && rangeEnd) {
-      match.date = { $gte: rangeStart, $lte: rangeEnd };
-    }
-
-    if (status === 'active') {
-      match.clockOut = null;
-    } else if (status === 'completed') {
-      match.clockOut = { $ne: null };
-    }
-
-    const pipeline: any[] = [
-      { $match: match },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      { $unwind: '$user' }
-    ];
-
-    if (search && typeof search === 'string' && search.trim().length > 0) {
-      const searchStr = search.trim();
-      pipeline.push({
-        $match: {
-          $or: [
-            { 'user.firstName': { $regex: searchStr, $options: 'i' } },
-            { 'user.lastName': { $regex: searchStr, $options: 'i' } },
-            { 'user.email': { $regex: searchStr, $options: 'i' } },
-            {
-              $expr: {
-                $regexMatch: {
-                  input: { $dateToString: { date: '$date', format: '%Y-%m-%d' } },
-                  regex: searchStr,
-                  options: 'i'
-                }
-              }
-            }
-          ]
-        }
-      });
-    }
-
-    pipeline.push(
-      { $sort: { date: -1, clockIn: -1 } },
-      {
-        $facet: {
-          items: [
-            { $skip: skip },
-            { $limit: limitNum },
-            {
-              $project: {
-                _id: 1,
-                date: 1,
-                clockIn: 1,
-                clockOut: 1,
-                user: {
-                  _id: '$user._id',
-                  firstName: '$user.firstName',
-                  lastName: '$user.lastName',
-                  email: '$user.email'
-                },
-                hours: {
-                  $round: [
-                    {
-                      $divide: [
-                        {
-                          $subtract: [
-                            {
-                              $cond: [{ $eq: ['$clockOut', null] }, '$$NOW', '$clockOut']
-                            },
-                            '$clockIn'
-                          ]
-                        },
-                        1000 * 60 * 60
-                      ]
-                    },
-                    2
-                  ]
-                },
-                status: {
-                  $cond: [{ $eq: ['$clockOut', null] }, 'active', 'completed']
-                }
-              }
-            }
-          ],
-          total: [
-            { $count: 'count' }
-          ]
-        }
-      }
-    );
-
-    const aggResult = await TimeEntry.aggregate(pipeline);
-    const items = (aggResult?.[0]?.items ?? []) as any[];
-    const total = Number(aggResult?.[0]?.total?.[0]?.count ?? 0);
-    const pages = Math.max(1, Math.ceil(total / limitNum));
-
-    res.json({
-      items,
-      pagination: {
-        total,
-        page: pageNum,
-        pages
-      }
+    const result = await AdminService.getTimeLogs({
+      search,
+      status,
+      month,
+      year,
+      startDate,
+      endDate,
+      page,
+      limit,
     });
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: (error as Error).message });
   }
 };
+
+/**
+ * GET /api/admin/time-logs/export
+ * Exports admin time logs XLSX with timezone-aware formatting.
+ * Headers/content-type preserved;
+ */
 export const exportTimeLogs = async (
-  req: Request<{}, {}, {}, {
-    search?: string;
-    status?: 'all' | 'active' | 'completed';
-    month?: string;
-    year?: string;
-    startDate?: string;
-    endDate?: string;
-    tzOffset?: string;
-  }>,
-  res: Response
+  req: Request<
+    {},
+    {},
+    {},
+    {
+      search?: string;
+      status?: 'all' | 'active' | 'completed';
+      month?: string;
+      year?: string;
+      startDate?: string;
+      endDate?: string;
+      tzOffset?: string;
+    }
+  >,
+  res: Response,
 ): Promise<void> => {
   try {
-    const {
-      search = '',
-      status = 'all',
+    const { search = '', status = 'all', month, year, startDate, endDate, tzOffset } = req.query;
+
+    const { buffer, filename } = await ReportService.exportTimeLogsXLSX({
+      search,
+      status,
       month,
       year,
       startDate,
       endDate,
       tzOffset,
-    } = req.query;
-
-    const tzOffsetMinutes = Number(tzOffset ?? '0');
-    const toLocal = (d?: Date | null) => {
-      if (!d) return null;
-      const ms = new Date(d).getTime();
-      return new Date(ms - tzOffsetMinutes * 60 * 1000);
-    };
-    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const formatDateLocal = (d?: Date | null) => {
-      if (!d) return '';
-      const ld = toLocal(d)!;
-      const yyyy = ld.getUTCFullYear();
-      const mmm = monthNames[ld.getUTCMonth()];
-      const dd = String(ld.getUTCDate()).padStart(2,'0');
-      return `${mmm} ${dd}, ${yyyy}`;
-    };
-    const formatTimeLocal = (d?: Date | null) => {
-      if (!d) return '';
-      const ld = toLocal(d)!;
-      let hours = ld.getUTCHours();
-      const minutes = ld.getUTCMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      if (hours === 0) hours = 12;
-      const mm = String(minutes).padStart(2,'0');
-      return `${hours}:${mm} ${ampm}`;
-    };
-    const formatHoursWorked = (hours?: number | null) => {
-      if (typeof hours !== 'number' || isNaN(hours)) return '0 mins';
-      const totalMinutes = Math.round(hours * 60);
-      const h = Math.floor(totalMinutes / 60);
-      const m = totalMinutes % 60;
-      const parts: string[] = [];
-      if (h > 0) parts.push(`${h} hr${h === 1 ? '' : 's'}`);
-      if (m > 0) parts.push(`${m} min${m === 1 ? '' : 's'}`);
-      return parts.length > 0 ? parts.join(' ') : '0 mins';
-    };
-    const match: any = {};
-
-    let rangeStart: Date | undefined;
-    let rangeEnd: Date | undefined;
-
-    if (year !== undefined && month !== undefined) {
-      const y = Number(year);
-      const m = Number(month);
-      rangeStart = new Date(y, m, 1, 0, 0, 0, 0);
-      rangeEnd = new Date(y, m + 1, 0, 23, 59, 59, 999);
-    } else if (startDate && endDate) {
-      rangeStart = new Date(startDate);
-      rangeEnd = new Date(endDate);
-    }
-
-    if (rangeStart && rangeEnd) {
-      match.date = { $gte: rangeStart, $lte: rangeEnd };
-    }
-
-    if (status === 'active') {
-      match.clockOut = null;
-    } else if (status === 'completed') {
-      match.clockOut = { $ne: null };
-    }
-
-    const pipeline: any[] = [
-      { $match: match },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      { $unwind: '$user' }
-    ];
-
-    if (search && typeof search === 'string' && search.trim().length > 0) {
-      const searchStr = search.trim();
-      pipeline.push({
-        $match: {
-          $or: [
-            { 'user.firstName': { $regex: searchStr, $options: 'i' } },
-            { 'user.lastName': { $regex: searchStr, $options: 'i' } },
-            { 'user.email': { $regex: searchStr, $options: 'i' } },
-            {
-              $expr: {
-                $regexMatch: {
-                  input: { $dateToString: { date: '$date', format: '%Y-%m-%d' } },
-                  regex: searchStr,
-                  options: 'i'
-                }
-              }
-            }
-          ]
-        }
-      });
-    }
-
-    pipeline.push(
-      { $sort: { date: -1, clockIn: -1 } },
-      {
-        $project: {
-          _id: 1,
-          date: 1,
-          clockIn: 1,
-          clockOut: 1,
-          user: {
-            _id: '$user._id',
-            firstName: '$user.firstName',
-            lastName: '$user.lastName',
-            email: '$user.email'
-          },
-          hours: {
-            $round: [
-              {
-                $divide: [
-                  {
-                    $subtract: [
-                      {
-                        $cond: [{ $eq: ['$clockOut', null] }, '$$NOW', '$clockOut']
-                      },
-                      '$clockIn'
-                    ]
-                  },
-                  1000 * 60 * 60
-                ]
-              },
-              2
-            ]
-          },
-          status: {
-            $cond: [{ $eq: ['$clockOut', null] }, 'active', 'completed']
-          }
-        }
-      }
-    );
-
-    const items = await TimeEntry.aggregate(pipeline);
-
-    const rows = items.map((item: any) => {
-      const name = `${item.user?.firstName ?? ''} ${item.user?.lastName ?? ''}`.trim();
-      return {
-        Employee: name,
-        Email: item.user?.email ?? '',
-        Date: item.date ? formatDateLocal(item.date) : '',
-        'Clock In': item.clockIn ? formatTimeLocal(item.clockIn) : '',
-        'Clock Out': item.clockOut ? formatTimeLocal(item.clockOut) : '',
-        'Hours Worked': formatHoursWorked(item.hours),
-        Status: String(item.status || '').charAt(0).toUpperCase() + String(item.status || '').slice(1),
-      };
     });
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows, { header: ['Employee', 'Email', 'Date', 'Clock In', 'Clock Out', 'Hours Worked', 'Status'] });
-    XLSX.utils.book_append_sheet(wb, ws, 'Time Logs');
-
-    const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' }) as Buffer;
-
-    let filename: string;
-    if (year !== undefined && month !== undefined) {
-      const y = Number(year);
-      const m = Number(month) + 1;
-      filename = `time-logs-${y}-${String(m).padStart(2, '0')}.xlsx`;
-    } else {
-      const today = new Date().toISOString().slice(0, 10);
-      filename = `time-logs-${today}.xlsx`;
-    }
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Transfer-Encoding', 'binary');
-    res.setHeader('Cache-Control', 'no-store, no-transform');
-    res.setHeader('Pragma', 'no-cache');
-
+    setExportHeaders(res, filename);
     res.status(200).end(buffer);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to export time logs', error: (error as Error).message });
+    res
+      .status(500)
+      .json({ message: 'Failed to export time logs', error: (error as Error).message });
   }
 };

@@ -12,6 +12,9 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import serverless from 'serverless-http';
 import { validateEnv } from './utils/validateEnv.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { sendError } from './utils/response.js';
+import { logger } from './utils/logger.js';
 
 validateEnv();
 
@@ -26,11 +29,16 @@ app.use(cookieParser() as any);
 app.use(morgan('combined'));
 
 // Proper CORS with credentials and exposed headers for downloads
-app.use(cors({
-  origin: (CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(Boolean),
-  credentials: true,
-  exposedHeaders: ['Content-Disposition'],
-}));
+app.use(
+  cors({
+    origin: (CORS_ORIGIN || '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
+    credentials: true,
+    exposedHeaders: ['Content-Disposition'],
+  }),
+);
 app.use('/api/auth', authRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/pto', ptoRoutes);
@@ -39,12 +47,9 @@ app.use('/api/users', userRoutes);
 
 app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
 
-app.use((req: Request, res: Response) => res.status(404).json({ message: 'Not Found' }));
+app.use((req: Request, res: Response) => sendError(res, 404, 'Not Found'));
 
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message });
-});
+app.use(errorHandler);
 
 let isConnected = false;
 const connectDB = async () => {
@@ -54,9 +59,9 @@ const connectDB = async () => {
     await mongoose.connect(MONGODB_URI);
     isConnected = true;
     const dbName = mongoose.connection?.db?.databaseName;
-    console.log(`Connected to database: ${dbName}`);
+    logger.info('Connected to database', { dbName });
   } catch (err) {
-    console.error('MongoDB connection error:', err);
+    logger.error('MongoDB connection error', { error: String(err) });
     throw err;
   }
 };
@@ -68,8 +73,8 @@ const handler = async (event: any, context: any) => {
   const serverlessHandler = serverless(app, {
     binary: [
       'application/octet-stream',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    ]
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ],
   });
   return serverlessHandler(event, context);
 };
@@ -77,9 +82,9 @@ const handler = async (event: any, context: any) => {
 if (process.env.AWS_LAMBDA_FUNCTION_NAME === undefined) {
   connectDB().then(() => {
     app.listen(PORT, () => {
-      console.log(`Server running locally on port ${PORT}`);
+      logger.info(`Server running locally on port ${PORT}`);
     });
   });
 }
 
-export { handler }; 
+export { handler };

@@ -1,300 +1,222 @@
-import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import { Request, Response, NextFunction } from 'express';
 import { IUser, ILoginRequest, IRegisterRequest } from '../types/models.js';
-import { validateLoginInput, validateRegistrationInput } from '../utils/validation.js';
+import { AuthService } from '../services/auth.service.js';
+import { sendSuccess, sendError, getCookieOptions } from '../utils/response.js';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  process.exit(1);
-}
-
-const generateToken = (userId: string): string => {
-  try {
-    const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
-    return token;
-  } catch (error) {
-    throw new Error('Failed to generate authentication token');
-  }
-};
-
-export const register = async (req: Request<{}, {}, IRegisterRequest>, res: Response): Promise<void> => {
+/**
+ * POST /api/auth/register
+ * Validates input (handled by Zod in routes), delegates to AuthService, sets cookie, returns safe user.
+ * Response shape preserved.
+ */
+export const register = async (
+  req: Request<{}, {}, IRegisterRequest>,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
     const { firstName, lastName, email, password } = req.body;
 
-    const validation = validateRegistrationInput(email, password, firstName, lastName);
-    if (!validation.success) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validation.errors
-      });
-      return;
-    }
+    try {
+      const { user, token } = await AuthService.register({ firstName, lastName, email, password });
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      res.status(400).json({ 
-        success: false,
-        message: 'Email already registered',
-        errors: {
-          email: 'This email is already registered'
-        }
-      });
-      return;
-    }
+      res.cookie('token', token, getCookieOptions());
 
-    const user = new User({
-      firstName,
-      lastName,
-      email,
-      password
-    }) as IUser;
-
-    await user.save();
-
-    const token = generateToken(user._id.toString());
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    res.status(201).json({
-      success: true,
-      data: {
+      // Preserve original success shape
+      return sendSuccess(res, {
         user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        }
+          id: (user as any)._id,
+          firstName: (user as any).firstName,
+          lastName: (user as any).lastName,
+          name: (user as any).name,
+          email: (user as any).email,
+          role: (user as any).role,
+        },
+      });
+    } catch (e) {
+      const err = e as any;
+      if (err?.code === 'EMAIL_TAKEN') {
+        return sendError(res, 400, 'Email already registered', {
+          email: 'This email is already registered',
+        });
       }
-    });
+      throw err;
+    }
   } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error during registration',
-      error: (error as Error).message 
-    });
+    next(error);
   }
 };
 
-export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response): Promise<void> => {
+/**
+ * POST /api/auth/login
+ * Validates input (Zod via route), delegates to AuthService, sets cookie, returns safe user.
+ * Response shape preserved.
+ */
+export const login = async (
+  req: Request<{}, {}, ILoginRequest>,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
     const { email, password } = req.body;
 
-    const validation = validateLoginInput(email, password);
-    if (!validation.success) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validation.errors
-      });
-      return;
-    }
+    try {
+      const { user, token } = await AuthService.login(email, password);
 
-    const user = await User.findOne({ email }) as IUser | null;
-    if (!user) {
-      res.status(401).json({ 
-        success: false,
-        message: 'Authentication failed',
-        errors: {
-          email: 'No account found with this email'
-        }
-      });
-      return;
-    }
+      res.cookie('token', token, getCookieOptions());
 
-    const isMatch = await user.comparePassword(password);
-    
-    if (!isMatch) {
-      res.status(401).json({ 
-        success: false,
-        message: 'Authentication failed',
-        errors: {
-          password: 'Incorrect password'
-        }
-      });
-      return;
-    }
-
-    const token = generateToken(user._id.toString());
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    res.json({
-      success: true,
-      data: {
+      return sendSuccess(res, {
         user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        }
+          id: (user as any)._id,
+          firstName: (user as any).firstName,
+          lastName: (user as any).lastName,
+          name: (user as any).name,
+          email: (user as any).email,
+          role: (user as any).role,
+        },
+      });
+    } catch (e) {
+      const err = e as any;
+      if (err?.code === 'AUTH_NO_USER') {
+        return sendError(res, 401, 'Authentication failed', {
+          email: 'No account found with this email',
+        });
       }
-    });
+      if (err?.code === 'AUTH_BAD_PASSWORD') {
+        return sendError(res, 401, 'Authentication failed', { password: 'Incorrect password' });
+      }
+      throw err;
+    }
   } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error during login',
-      error: (error as Error).message 
-    });
+    next(error);
   }
 };
 
-export const logout = (req: Request, res: Response): void => {
+/**
+ * POST /api/auth/logout
+ * Clears the auth token cookie.
+ * Response preserved.
+ */
+export const logout = (_req: Request, res: Response): void => {
+  // Match cookie attributes to ensure proper clearing
   res.clearCookie('token', {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   });
   res.json({ success: true, message: 'Logged out successfully' });
 };
 
-export const getProfile = async (req: Request, res: Response): Promise<void> => {
+/**
+ * GET /api/auth/profile
+ * Returns authenticated user's profile (sans password).
+ * Response preserved.
+ */
+export const getProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
-    const user = await User.findById(req.user!._id).select('-password') as IUser | null;
+    const user = (await AuthService.getProfile(req.user!._id.toString())) as IUser | null;
     if (!user) {
-      res.status(404).json({ 
-        success: false,
-        message: 'User not found' 
-      });
-      return;
+      return sendError(res, 404, 'User not found');
     }
-    res.json({
-      success: true,
-      data: user
-    });
+    return sendSuccess(res, user);
   } catch (error) {
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error while fetching profile',
-      error: (error as Error).message 
-    });
+    next(error);
   }
 };
 
-export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+/**
+ * PATCH /api/auth/profile
+ * Updates firstName and lastName for authenticated user.
+ * Response preserved.
+ */
+export const updateProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
-    const { firstName, lastName } = req.body;
-    
-    if (!firstName || !lastName) {
-      res.status(400).json({
-        success: false,
-        message: 'First name and last name are required'
-      });
-      return;
-    }
+    const { firstName, lastName } = req.body as { firstName: string; lastName: string };
 
-    const user = await User.findByIdAndUpdate(
-      req.user!._id,
-      { firstName, lastName },
-      { new: true }
-    ).select('-password') as IUser | null;
+    const user = (await AuthService.updateProfile(
+      req.user!._id.toString(),
+      firstName,
+      lastName,
+    )) as IUser | null;
 
     if (!user) {
-      res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-      return;
+      return sendError(res, 404, 'User not found');
     }
 
-    res.json({
-      success: true,
-      data: user
-    });
+    return sendSuccess(res, user);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating profile',
-      error: (error as Error).message
-    });
+    next(error);
   }
 };
 
-export const updatePassword = async (req: Request, res: Response): Promise<void> => {
+/**
+ * PATCH /api/auth/password
+ * Updates authenticated user's password after verifying current password.
+ * Response preserved.
+ */
+export const updatePassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    
-    if (!currentPassword || !newPassword) {
-      res.status(400).json({
-        success: false,
-        message: 'Current password and new password are required'
-      });
-      return;
+    const { currentPassword, newPassword } = req.body as {
+      currentPassword: string;
+      newPassword: string;
+    };
+
+    try {
+      await AuthService.updatePassword(req.user!._id.toString(), currentPassword, newPassword);
+      return sendSuccess(res, null, 'Password updated successfully');
+    } catch (e) {
+      const err = e as any;
+      if (err?.code === 'USER_NOT_FOUND') {
+        return sendError(res, 500, 'Server error while updating password', 'User not found');
+      }
+      if (err?.code === 'BAD_CURRENT_PASSWORD') {
+        return sendError(res, 401, 'Current password is incorrect');
+      }
+      throw err;
     }
-
-    const user = await User.findById(req.user!._id) as IUser;
-    
-    const isMatch = await user.comparePassword(currentPassword);
-    if (!isMatch) {
-      res.status(401).json({
-        success: false,
-        message: 'Current password is incorrect'
-      });
-      return;
-    }
-
-    user.password = newPassword;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Password updated successfully'
-    });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating password',
-      error: (error as Error).message
-    });
+    next(error);
   }
 };
 
-export const validateCurrentPassword = async (req: Request, res: Response): Promise<void> => {
+/**
+ * POST /api/auth/validate-password
+ * Validates that the provided password matches the current password.
+ * Response preserved.
+ */
+export const validateCurrentPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
-    const { password } = req.body;
-    
-    if (!password) {
-      res.status(400).json({
-        success: false,
-        message: 'Password is required'
-      });
-      return;
-    }
+    const { password } = req.body as { password: string };
 
-    const user = await User.findById(req.user!._id) as IUser;
-    
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      res.status(401).json({
-        success: false,
-        message: 'Current password is incorrect'
-      });
-      return;
+    try {
+      const isMatch = await AuthService.validateCurrentPassword(req.user!._id.toString(), password);
+      if (!isMatch) {
+        return sendError(res, 401, 'Current password is incorrect');
+      }
+      return sendSuccess(res, null, 'Password is valid');
+    } catch (e) {
+      const err = e as any;
+      if (err?.code === 'USER_NOT_FOUND') {
+        return sendError(res, 500, 'Server error while validating password', 'User not found');
+      }
+      throw err;
     }
-
-    res.json({
-      success: true,
-      message: 'Password is valid'
-    });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error while validating password',
-      error: (error as Error).message
-    });
+    next(error);
   }
-}; 
+};

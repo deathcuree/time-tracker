@@ -6,4 +6,4 @@ const router = express.Router();
 
 router.post('/', auth, isAdmin, createUser);
 
-export default router; 
+export default router;
