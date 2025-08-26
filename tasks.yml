@@ -1,0 +1,40 @@
+tasks:
+  - name: "Investigate and fix inconsistent clock-in dates"
+    description: |
+      One user logged in today (Aug 26), but the system shows:
+        - On the **user dashboard**: clock-in = Aug 26 ✅
+        - On the **admin panel**: clock-in = Aug 25 ❌
+      This indicates a possible timezone or date formatting bug.
+
+      Investigation requirements:
+        1. Check how clock-in times are being recorded:
+           - In the backend (controllers/services) when creating a `TimeEntry`.
+           - In the database (MongoDB): is `createdAt` or `clockIn` stored in UTC or local time?
+           - In the frontend: is the displayed date derived from `Date.toLocaleString()` or raw ISO strings?
+
+        2. Identify if the mismatch is caused by:
+           - The backend saving dates in UTC while the frontend/admin panel is converting them differently.
+           - Inconsistent use of `new Date()`, `moment`, or `dayjs` formatting across user and admin views.
+           - The admin panel applying a timezone offset incorrectly (e.g., rendering as UTC-1).
+
+        3. Confirm which timezone should be the source of truth:
+           - All dates should be stored in UTC in MongoDB.
+           - All frontend (user and admin) displays should apply the configured app timezone (e.g., Asia/Manila).
+
+      Fix requirements:
+        - Ensure all time entries (`clockIn`, `clockOut`) are stored in UTC in the DB.
+        - Create a utility function `formatDateForDisplay(date, timezone)` to render consistently.
+        - Update both **user dashboard** and **admin panel** to use this same formatter.
+        - Avoid mixing `new Date()` without timezone awareness.
+
+      Constraints:
+        - Do not change API response shapes.
+        - Do not break existing clock-in/out functionality.
+        - Maintain compatibility with existing reports/exports.
+        - Ensure backward compatibility for old entries (must still display correctly).
+
+      Deliverables:
+        - Debug report (root cause: server vs client vs DB).
+        - Centralized date/time utility in `/utils/date.ts`.
+        - Updated admin and user views to use consistent formatting.
+        - Updated tests to cover different timezones (e.g., log in at 11:30 PM vs 12:30 AM).

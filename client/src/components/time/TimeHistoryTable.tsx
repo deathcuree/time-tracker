@@ -1,12 +1,19 @@
-import React, { useState, useCallback, useEffect, memo } from 'react';
-import { useTime, TimeEntry } from '@/contexts/TimeContext';
-import { format, parseISO, differenceInMinutes } from 'date-fns';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MonthYearFilter } from './MonthYearFilter';
-import { StatusFilter } from './StatusFilter';
-import { StatusBadge } from '@/components/shared/StatusBadge';
+import React, { useState, useCallback, useEffect, memo } from "react";
+import { useTime, TimeEntry } from "@/contexts/TimeContext";
+import { parseISO, differenceInMinutes } from "date-fns";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MonthYearFilter } from "./MonthYearFilter";
+import { StatusFilter } from "./StatusFilter";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,117 +24,138 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Trash2 } from 'lucide-react';
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Trash2 } from "lucide-react";
+import { formatDateForDisplay, formatTimeForDisplay } from "@/utils/date";
 
 const ITEMS_PER_PAGE = 10;
 
-const TimeEntryRow = memo(({ entry, onDelete }: { entry: TimeEntry; onDelete: (id: string) => void }) => {
-  const formatTime = (time: string | null): string => {
-    if (!time) return 'N/A';
-    return format(parseISO(time), 'h:mm a');
-  };
+const TimeEntryRow = memo(
+  ({
+    entry,
+    onDelete,
+  }: {
+    entry: TimeEntry;
+    onDelete: (id: string) => void;
+  }) => {
+    const formatTime = (time: string | null): string => {
+      if (!time) return "N/A";
+      return formatTimeForDisplay(time);
+    };
 
-  const calculateHoursWorked = (entry: TimeEntry): string => {
-    if (!entry.clockOut) return 'Still clocked in';
-    
-    const clockIn = parseISO(entry.clockIn);
-    const clockOut = parseISO(entry.clockOut);
-    
-    const minutesWorked = differenceInMinutes(clockOut, clockIn);
-    const hours = Math.floor(minutesWorked / 60);
-    const minutes = minutesWorked % 60;
-    
-    return `${hours}h ${minutes}m`;
-  };
+    const calculateHoursWorked = (entry: TimeEntry): string => {
+      if (!entry.clockOut) return "Still clocked in";
 
-  const getStatus = (entry: TimeEntry): 'active' | 'completed' => {
-    const s = (entry as any).status as 'active' | 'completed' | undefined;
-    if (s === 'active' || s === 'completed') return s;
-    return entry.clockOut ? 'completed' : 'active';
-  };
+      const clockIn = parseISO(entry.clockIn);
+      const clockOut = parseISO(entry.clockOut);
 
-  const isActive = !entry.clockOut;
+      const minutesWorked = differenceInMinutes(clockOut, clockIn);
+      const hours = Math.floor(minutesWorked / 60);
+      const minutes = minutesWorked % 60;
 
-  return (
-    <TableRow>
-      <TableCell>
-        {format(parseISO(entry.date), 'MMM dd, yyyy')}
-      </TableCell>
-      <TableCell>{formatTime(entry.clockIn)}</TableCell>
-      <TableCell>
-        {entry.clockOut ? (
-          formatTime(entry.clockOut)
-        ) : (
-          <span className="text-primary font-medium">Still clocked in</span>
-        )}
-      </TableCell>
-      <TableCell>{calculateHoursWorked(entry)}</TableCell>
-      <TableCell className="text-center">
-        <StatusBadge status={getStatus(entry)} />
-      </TableCell>
-      <TableCell className="text-center">
-        <AlertDialog>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    disabled={isActive}
-                    aria-label={isActive ? 'Cannot delete an active time entry. Clock out first.' : 'Delete time entry'}
-                    title={isActive ? 'Cannot delete an active time entry. Clock out first.' : 'Delete time entry'}
-                  >
-                    <Trash2 />
-                  </Button>
-                </AlertDialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isActive ? 'Cannot delete active entry' : 'Delete entry'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete time entry?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the selected time entry.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => onDelete(entry.id ?? (entry as any)._id)}
-              >
-                Confirm
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </TableCell>
-    </TableRow>
-  );
-});
+      return `${hours}h ${minutes}m`;
+    };
 
-TimeEntryRow.displayName = 'TimeEntryRow';
+    const getStatus = (entry: TimeEntry): "active" | "completed" => {
+      const s = (entry as any).status as "active" | "completed" | undefined;
+      if (s === "active" || s === "completed") return s;
+      return entry.clockOut ? "completed" : "active";
+    };
+
+    const isActive = !entry.clockOut;
+
+    return (
+      <TableRow>
+        <TableCell>{formatDateForDisplay(entry.date)}</TableCell>
+        <TableCell>{formatTime(entry.clockIn)}</TableCell>
+        <TableCell>
+          {entry.clockOut ? (
+            formatTime(entry.clockOut)
+          ) : (
+            <span className="text-primary font-medium">Still clocked in</span>
+          )}
+        </TableCell>
+        <TableCell>{calculateHoursWorked(entry)}</TableCell>
+        <TableCell className="text-center">
+          <StatusBadge status={getStatus(entry)} />
+        </TableCell>
+        <TableCell className="text-center">
+          <AlertDialog>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      disabled={isActive}
+                      aria-label={
+                        isActive
+                          ? "Cannot delete an active time entry. Clock out first."
+                          : "Delete time entry"
+                      }
+                      title={
+                        isActive
+                          ? "Cannot delete an active time entry. Clock out first."
+                          : "Delete time entry"
+                      }
+                    >
+                      <Trash2 />
+                    </Button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isActive ? "Cannot delete active entry" : "Delete entry"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete time entry?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the
+                  selected time entry.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(entry.id ?? (entry as any)._id)}
+                >
+                  Confirm
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </TableCell>
+      </TableRow>
+    );
+  }
+);
+
+TimeEntryRow.displayName = "TimeEntryRow";
 
 export const TimeHistoryTable: React.FC = () => {
-  const { entries, isLoading, fetchEntries, pagination, deleteTimeEntry } = useTime();
+  const { entries, isLoading, fetchEntries, pagination, deleteTimeEntry } =
+    useTime();
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
 
   const handleDelete = (id: string) => {
-    // Confirmation handled by AlertDialog; directly perform delete here.
     deleteTimeEntry(id);
   };
 
   const [currentFilters, setCurrentFilters] = useState({
     month: currentMonth,
     year: currentYear,
-    status: 'all' as 'all' | 'active' | 'completed',
-    page: 1
+    status: "all" as "all" | "active" | "completed",
+    page: 1,
   });
 
   const loadEntries = useCallback(() => {
@@ -136,7 +164,7 @@ export const TimeHistoryTable: React.FC = () => {
       year: currentFilters.year,
       status: currentFilters.status,
       page: currentFilters.page,
-      limit: ITEMS_PER_PAGE
+      limit: ITEMS_PER_PAGE,
     });
   }, [currentFilters, fetchEntries]);
 
@@ -165,7 +193,7 @@ export const TimeHistoryTable: React.FC = () => {
             month={currentFilters.month}
             startYear={2025}
             onChange={({ year, month }) =>
-              setCurrentFilters(prev => ({
+              setCurrentFilters((prev) => ({
                 ...prev,
                 ...(year !== undefined ? { year } : {}),
                 ...(month !== undefined ? { month } : {}),
@@ -177,15 +205,15 @@ export const TimeHistoryTable: React.FC = () => {
           <StatusFilter
             value={currentFilters.status}
             onChange={(value) =>
-              setCurrentFilters(prev => ({
+              setCurrentFilters((prev) => ({
                 ...prev,
                 status: value,
-                page: 1
+                page: 1,
               }))
             }
           />
         </div>
-        
+
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -193,7 +221,9 @@ export const TimeHistoryTable: React.FC = () => {
                 <TableHead className="w-1/6 text-center">Date</TableHead>
                 <TableHead className="w-1/6 text-center">Clock In</TableHead>
                 <TableHead className="w-1/6 text-center">Clock Out</TableHead>
-                <TableHead className="w-1/6 text-center">Hours Worked</TableHead>
+                <TableHead className="w-1/6 text-center">
+                  Hours Worked
+                </TableHead>
                 <TableHead className="w-1/6 text-center">Status</TableHead>
                 <TableHead className="w-1/6 text-center">Actions</TableHead>
               </TableRow>
@@ -201,7 +231,11 @@ export const TimeHistoryTable: React.FC = () => {
             <TableBody>
               {entries.length > 0 ? (
                 entries.map((entry) => (
-                  <TimeEntryRow key={(entry.id ?? (entry as any)._id) as string} entry={entry} onDelete={handleDelete} />
+                  <TimeEntryRow
+                    key={(entry.id ?? (entry as any)._id) as string}
+                    entry={entry}
+                    onDelete={handleDelete}
+                  />
                 ))
               ) : (
                 <TableRow key="no-entries">
@@ -213,7 +247,7 @@ export const TimeHistoryTable: React.FC = () => {
             </TableBody>
           </Table>
         </div>
-        
+
         {/* Pagination */}
         {pagination.totalPages > 1 && (
           <div className="flex justify-center space-x-2 mt-4">
@@ -221,18 +255,25 @@ export const TimeHistoryTable: React.FC = () => {
               key="prev"
               variant="outline"
               size="sm"
-              onClick={() => setCurrentFilters(prev => ({ ...prev, page: prev.page - 1 }))}
+              onClick={() =>
+                setCurrentFilters((prev) => ({ ...prev, page: prev.page - 1 }))
+              }
               disabled={currentFilters.page === 1}
             >
               Previous
             </Button>
             <div className="flex items-center space-x-1">
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+              {Array.from(
+                { length: pagination.totalPages },
+                (_, i) => i + 1
+              ).map((page) => (
                 <Button
                   key={`page-${page}`}
                   variant={currentFilters.page === page ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setCurrentFilters(prev => ({ ...prev, page }))}
+                  onClick={() =>
+                    setCurrentFilters((prev) => ({ ...prev, page }))
+                  }
                 >
                   {page}
                 </Button>
@@ -242,7 +283,9 @@ export const TimeHistoryTable: React.FC = () => {
               key="next"
               variant="outline"
               size="sm"
-              onClick={() => setCurrentFilters(prev => ({ ...prev, page: prev.page + 1 }))}
+              onClick={() =>
+                setCurrentFilters((prev) => ({ ...prev, page: prev.page + 1 }))
+              }
               disabled={currentFilters.page === pagination.totalPages}
             >
               Next

@@ -24,12 +24,11 @@ export const TimeService = {
     }
 
     const now = new Date();
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
+    const dateUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
     const timeEntry = new TimeEntry({
       userId: new mongoose.Types.ObjectId(userId),
-      date: today,
+      date: dateUTC,
       clockIn: now,
     }) as ITimeEntry;
 
@@ -110,13 +109,16 @@ export const TimeService = {
    * Compute total hours for today and current week for a user.
    */
   getTimeStats: async (userId: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const tomorrow = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+    );
 
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+    const day = startOfWeek.getUTCDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    startOfWeek.setUTCDate(startOfWeek.getUTCDate() + diffToMonday);
 
     const todayEntries = await TimeEntry.find({
       userId: new mongoose.Types.ObjectId(userId),
