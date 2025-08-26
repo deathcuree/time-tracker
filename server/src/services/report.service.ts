@@ -1,17 +1,8 @@
 import * as XLSX from 'xlsx';
-import mongoose from 'mongoose';
 import PTORequest from '../models/PTORequest.js';
 import TimeEntry from '../models/TimeEntry.js';
-import { IUser, ITimeEntry } from '../types/models.js';
 
-/**
- * ReportService
- * Focused on reporting/exports (XLSX generation, aggregations specific to exports)
- */
 export const ReportService = {
-  /**
-   * Build aggregation for PTO export and return XLSX buffer + filename
-   */
   exportPTORequestsToXLSX: async (params: {
     search?: string;
     status?: 'pending' | 'approved' | 'denied' | 'all';
@@ -91,9 +82,6 @@ export const ReportService = {
     return { buffer, filename };
   },
 
-  /**
-   * Build XLSX for admin time logs export with timezone formatting
-   */
   exportTimeLogsXLSX: async (params: {
     search?: string;
     status?: 'all' | 'active' | 'completed';

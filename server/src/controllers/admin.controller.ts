@@ -13,10 +13,6 @@ import {
 } from '../types/admin.js';
 import { setExportHeaders } from '../utils/response.js';
 
-/**
- * GET /api/admin/users
- * Returns all users
- */
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const users = await AdminService.getAllUsers();
@@ -26,10 +22,6 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-/**
- * GET /api/admin/users/:userId/time-entries
- * Fetch time entries for a user with optional date range. Signature unchanged.
- */
 export const getUserTimeEntries = async (
   req: Request<TimeEntriesParams, {}, {}, TimeEntriesQuery>,
   res: Response,
@@ -50,10 +42,6 @@ export const getUserTimeEntries = async (
   }
 };
 
-/**
- * GET /api/admin/time-report
- * Aggregated time report per user. Signature and response unchanged.
- */
 export const getTimeReport = async (
   req: Request<{}, {}, {}, TimeReportQuery>,
   res: Response,
@@ -69,11 +57,6 @@ export const getTimeReport = async (
   }
 };
 
-/**
- * PATCH /api/admin/users/:userId/role
- * Keeps validation and response semantics identical.
- * Note: Minimal business logic left here to avoid route breakage; can be moved later if needed.
- */
 export const updateUserRole = async (
   req: Request<UpdateUserRoleParams, {}, UpdateUserRoleBody>,
   res: Response,
@@ -100,10 +83,6 @@ export const updateUserRole = async (
   }
 };
 
-/**
- * GET /api/admin/pto/export
- * Exports PTO table data to XLSX.
- */
 export const exportTableData = async (
   req: Request<
     {},
@@ -175,11 +154,6 @@ export const getTimeLogs = async (
   }
 };
 
-/**
- * GET /api/admin/time-logs/export
- * Exports admin time logs XLSX with timezone-aware formatting.
- * Headers/content-type preserved;
- */
 export const exportTimeLogs = async (
   req: Request<
     {},

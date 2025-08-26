@@ -2,11 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { AnyZodObject, ZodError, ZodTypeAny } from 'zod';
 import { ValidationError } from '../utils/errors.js';
 
-/**
- * validateRequest
- * Use Zod schemas to validate req.body / req.params / req.query
- * On failure, forwards a standardized ValidationError to the global handler.
- */
 export function validateRequest(schemas: {
   body?: AnyZodObject | ZodTypeAny;
   params?: AnyZodObject | ZodTypeAny;

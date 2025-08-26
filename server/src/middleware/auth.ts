@@ -6,12 +6,11 @@ import { AuthError, ForbiddenError } from '../utils/errors.js';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
-  // Fail fast if misconfigured
   process.exit(1);
 }
 
 interface JwtPayload {
-  sub: string; // user id
+  sub: string;
   role?: 'user' | 'admin';
   iat?: number;
   exp?: number;
@@ -27,7 +26,7 @@ export const auth = async (req: Request, _res: Response, next: NextFunction): Pr
 
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
 
-    const userId = decoded.sub || (decoded as any).userId; // backward-compatibility
+    const userId = decoded.sub || (decoded as any).userId;
     if (!userId) {
       return next(new AuthError('Invalid token'));
     }

@@ -25,7 +25,6 @@ router.get('/time/logs/export', exportTimeLogs);
 router.patch(
   '/users/:userId/role',
   validateRequest({ params: updateRoleParamsSchema, body: updateRoleSchema }),
-  // Wrap to satisfy Express RequestHandler generics without changing controller signature
   (req, res) => updateUserRole(req as any, res),
 );
 router.get('/table/export', exportTableData);

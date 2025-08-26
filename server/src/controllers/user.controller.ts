@@ -3,13 +3,6 @@ import { z } from 'zod';
 import { UserService } from '../services/user.service.js';
 import { createUserSchema } from '../validators/user.validator.js';
 
-/**
- * POST /api/users
- * Creates a user.
- * - Keeps the same Express handler signature and response shape.
- * - Validates body with zod (unchanged).
- * - Delegates DB operations to UserService.
- */
 export const createUser = async (req: Request, res: Response) => {
   try {
     const validatedData = createUserSchema.parse(req.body);

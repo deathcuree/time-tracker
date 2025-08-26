@@ -5,9 +5,6 @@ import { IPTORequest, IPTORequestBody } from '../types/models.js';
 
 const MONTHLY_PTO_HOURS = 16;
 
-/**
- * Build date-related search conditions for PTO queries from a free-text string.
- */
 const createDateSearchConditions = (searchStr: string) => {
   const monthMap: { [key: string]: string } = {
     january: '01',
@@ -55,16 +52,7 @@ const createDateSearchConditions = (searchStr: string) => {
   return conditions;
 };
 
-/**
- * PTOService
- * Encapsulates PTO business logic: validations, DB queries, and transformations.
- * Controllers remain responsible for Express req/res handling and auth checks.
- */
 export const PTOService = {
-  /**
-   * Create a PTO request for a user after performing business validations.
-   * Returns the created request document.
-   */
   createRequest: async (userId: string, body: IPTORequestBody): Promise<IPTORequest> => {
     const { date, hours, reason } = body;
     const user = await User.findById(userId);
@@ -136,10 +124,6 @@ export const PTOService = {
     return ptoRequest;
   },
 
-  /**
-   * Get PTO requests for a user with optional free-text search.
-   * Returns requests populated with user info and transformed fields (userName, userEmail).
-   */
   getUserRequests: async (userId: string, search?: string) => {
     let query: any = { userId: new mongoose.Types.ObjectId(userId) };
 
@@ -177,10 +161,6 @@ export const PTOService = {
     return transformed;
   },
 
-  /**
-   * Update PTO request status by id as admin.
-   * Returns the updated request populated with user details.
-   */
   updateRequestStatus: async (
     requestId: string,
     approverId: string,
@@ -223,10 +203,6 @@ export const PTOService = {
     return updated;
   },
 
-  /**
-   * Admin: get all PTO requests with optional search across user details and date text.
-   * Returns transformed results similar to controller behavior.
-   */
   getAllRequests: async (search?: string) => {
     const pipeline: any[] = [
       {
@@ -295,10 +271,6 @@ export const PTOService = {
     return transformed;
   },
 
-  /**
-   * Get approved PTO hours count for a user for a specific month.
-   * Returns { count: number }
-   */
   getMonthlyRequestCount: async (userId: string, year: number, month: number) => {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
@@ -313,10 +285,6 @@ export const PTOService = {
     return { count: totalHours };
   },
 
-  /**
-   * Get yearly PTO stats for a user.
-   * Returns { totalHoursUsed, yearlyLimit, remainingHours }
-   */
   getYearlyPTOHours: async (userId: string, year: number) => {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31);

@@ -3,11 +3,6 @@ import { IUser, ILoginRequest, IRegisterRequest } from '../types/models.js';
 import { AuthService } from '../services/auth.service.js';
 import { sendSuccess, sendError, getCookieOptions } from '../utils/response.js';
 
-/**
- * POST /api/auth/register
- * Validates input (handled by Zod in routes), delegates to AuthService, sets cookie, returns safe user.
- * Response shape preserved.
- */
 export const register = async (
   req: Request<{}, {}, IRegisterRequest>,
   res: Response,
@@ -21,7 +16,6 @@ export const register = async (
 
       res.cookie('token', token, getCookieOptions());
 
-      // Preserve original success shape
       return sendSuccess(res, {
         user: {
           id: (user as any)._id,
@@ -46,11 +40,6 @@ export const register = async (
   }
 };
 
-/**
- * POST /api/auth/login
- * Validates input (Zod via route), delegates to AuthService, sets cookie, returns safe user.
- * Response shape preserved.
- */
 export const login = async (
   req: Request<{}, {}, ILoginRequest>,
   res: Response,
@@ -91,13 +80,7 @@ export const login = async (
   }
 };
 
-/**
- * POST /api/auth/logout
- * Clears the auth token cookie.
- * Response preserved.
- */
 export const logout = (_req: Request, res: Response): void => {
-  // Match cookie attributes to ensure proper clearing
   res.clearCookie('token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -106,11 +89,6 @@ export const logout = (_req: Request, res: Response): void => {
   res.json({ success: true, message: 'Logged out successfully' });
 };
 
-/**
- * GET /api/auth/profile
- * Returns authenticated user's profile (sans password).
- * Response preserved.
- */
 export const getProfile = async (
   req: Request,
   res: Response,
@@ -127,11 +105,6 @@ export const getProfile = async (
   }
 };
 
-/**
- * PATCH /api/auth/profile
- * Updates firstName and lastName for authenticated user.
- * Response preserved.
- */
 export const updateProfile = async (
   req: Request,
   res: Response,
@@ -156,11 +129,6 @@ export const updateProfile = async (
   }
 };
 
-/**
- * PATCH /api/auth/password
- * Updates authenticated user's password after verifying current password.
- * Response preserved.
- */
 export const updatePassword = async (
   req: Request,
   res: Response,
@@ -190,11 +158,6 @@ export const updatePassword = async (
   }
 };
 
-/**
- * POST /api/auth/validate-password
- * Validates that the provided password matches the current password.
- * Response preserved.
- */
 export const validateCurrentPassword = async (
   req: Request,
   res: Response,

@@ -3,10 +3,6 @@ import { IPTORequestBody } from '../types/models.js';
 import { PTOService } from '../services/pto.service.js';
 import { UpdateRequestBody, UpdateRequestParams } from '../types/pto.js';
 
-/**
- * POST /api/pto
- * Creates a PTO request. Signature and response are preserved.
- */
 export const createRequest = async (
   req: Request<{}, {}, IPTORequestBody>,
   res: Response,
@@ -22,10 +18,6 @@ export const createRequest = async (
   }
 };
 
-/**
- * GET /api/pto/my
- * Returns PTO requests for the authenticated user. Signature preserved.
- */
 export const getUserRequests = async (req: Request, res: Response): Promise<void> => {
   try {
     const { search } = req.query;
@@ -39,10 +31,6 @@ export const getUserRequests = async (req: Request, res: Response): Promise<void
   }
 };
 
-/**
- * PATCH /api/pto/:requestId/status
- * Admin only. Updates PTO request status. Signature preserved.
- */
 export const updateRequestStatus = async (
   req: Request<UpdateRequestParams, {}, UpdateRequestBody>,
   res: Response,
@@ -76,10 +64,6 @@ export const updateRequestStatus = async (
   }
 };
 
-/**
- * GET /api/pto
- * Admin: list all PTO requests with optional search. Signature preserved.
- */
 export const getAllRequests = async (req: Request, res: Response): Promise<void> => {
   try {
     if (req.user!.role !== 'admin') {
@@ -95,10 +79,6 @@ export const getAllRequests = async (req: Request, res: Response): Promise<void>
   }
 };
 
-/**
- * GET /api/pto/monthly-count/:year/:month
- * Returns total approved PTO hours for the month for the authenticated user. Signature preserved.
- */
 export const getMonthlyRequestCount = async (req: Request, res: Response): Promise<void> => {
   try {
     const { year, month } = req.params;
@@ -121,10 +101,6 @@ export const getMonthlyRequestCount = async (req: Request, res: Response): Promi
   }
 };
 
-/**
- * GET /api/pto/yearly/:year
- * Returns yearly PTO stats for the authenticated user. Signature preserved.
- */
 export const getYearlyPTOHours = async (req: Request, res: Response): Promise<void> => {
   try {
     const year = parseInt(req.params.year);
