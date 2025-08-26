@@ -2,15 +2,7 @@ import mongoose from 'mongoose';
 import TimeEntry from '../models/TimeEntry.js';
 import { ITimeEntry } from '../types/models.js';
 
-/**
- * TimeService
- * Encapsulates time tracking business logic (DB queries, calculations).
- * Controllers keep Express req/res signatures and HTTP concerns.
- */
 export const TimeService = {
-  /**
-   * Create a clock-in entry for a user if no active entry exists.
-   */
   clockIn: async (userId: string): Promise<ITimeEntry> => {
     const activeEntry = await TimeEntry.findOne({
       userId: new mongoose.Types.ObjectId(userId),
@@ -36,9 +28,6 @@ export const TimeService = {
     return timeEntry;
   },
 
-  /**
-   * Clock out the currently active entry for a user.
-   */
   clockOut: async (userId: string): Promise<ITimeEntry> => {
     const timeEntry = (await TimeEntry.findOne({
       userId: new mongoose.Types.ObjectId(userId),
@@ -56,10 +45,6 @@ export const TimeService = {
     return timeEntry;
   },
 
-  /**
-   * Get time entries for a user with optional date range and pagination.
-   * Mirrors controller behavior and return shape.
-   */
   getTimeEntries: async (
     userId: string,
     opts: {
@@ -105,9 +90,6 @@ export const TimeService = {
     return { entries };
   },
 
-  /**
-   * Compute total hours for today and current week for a user.
-   */
   getTimeStats: async (userId: string) => {
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -167,9 +149,6 @@ export const TimeService = {
     };
   },
 
-  /**
-   * Get current status (active entry if any) for a user.
-   */
   getCurrentStatus: async (userId: string) => {
     const activeEntry = (await TimeEntry.findOne({
       userId: new mongoose.Types.ObjectId(userId),
@@ -182,9 +161,6 @@ export const TimeService = {
     };
   },
 
-  /**
-   * Delete a single time entry by id if it belongs to the user and is not active.
-   */
   deleteTimeEntry: async (userId: string, id: string) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       const err: any = new Error('Invalid entry id');

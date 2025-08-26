@@ -1,15 +1,6 @@
 import User from '../models/User.js';
 
-/**
- * UserService
- * Encapsulates user management business logic (DB operations and transformations).
- * Controllers remain responsible for validation and Express req/res handling.
- */
 export const UserService = {
-  /**
-   * Create a user using already validated payload.
-   * Returns the user object without password field.
-   */
   createUser: async (data: {
     email: string;
     firstName: string;

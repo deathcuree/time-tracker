@@ -2,21 +2,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { IUser, IRegisterRequest } from '../types/models.js';
 
-/**
- * AuthService
- * Encapsulates authentication-related business logic (DB queries, token generation).
- * Controllers remain responsible for Express req/res handling, validation, and cookies.
- */
 export const AuthService = {
-  /**
-   * Generate JWT token for a user
-   * @param userId string user id
-   * @returns token string
-   */
-  /**
-   * Generate JWT token for a user with standardized payload
-   * payload: { sub, role, iat, exp }
-   */
   generateToken: (userId: string, role: 'user' | 'admin'): string => {
     const JWT_SECRET = process.env.JWT_SECRET;
     if (!JWT_SECRET) {
@@ -29,11 +15,6 @@ export const AuthService = {
     }
   },
 
-  /**
-   * Register a new user (assumes input validated by controller)
-   * @param data registration payload
-   * @returns created safe user (without password) and token
-   */
   register: async (
     data: IRegisterRequest,
   ): Promise<{
@@ -63,12 +44,6 @@ export const AuthService = {
     return { user: safe, token };
   },
 
-  /**
-   * Login user (assumes input validated by controller)
-   * @param email string
-   * @param password string
-   * @returns safe user (without password) and token
-   */
   login: async (
     email: string,
     password: string,
@@ -95,23 +70,11 @@ export const AuthService = {
     return { user: safe, token };
   },
 
-  /**
-   * Get profile for userId
-   * @param userId string
-   * @returns safe user (without password) or null
-   */
   getProfile: async (userId: string) => {
     const user = await User.findById(userId).select('-password');
     return user;
   },
 
-  /**
-   * Update profile (firstName, lastName)
-   * @param userId string
-   * @param firstName string
-   * @param lastName string
-   * @returns updated safe user (without password) or null
-   */
   updateProfile: async (userId: string, firstName: string, lastName: string) => {
     const user = await User.findByIdAndUpdate(
       userId,
@@ -121,12 +84,6 @@ export const AuthService = {
     return user;
   },
 
-  /**
-   * Update password after verifying current password
-   * @param userId string
-   * @param currentPassword string
-   * @param newPassword string
-   */
   updatePassword: async (
     userId: string,
     currentPassword: string,
@@ -150,12 +107,6 @@ export const AuthService = {
     await user.save();
   },
 
-  /**
-   * Validate if provided password matches current user password
-   * @param userId string
-   * @param password string
-   * @returns boolean
-   */
   validateCurrentPassword: async (userId: string, password: string): Promise<boolean> => {
     const user = (await User.findById(userId)) as IUser | null;
     if (!user) {

@@ -5,23 +5,12 @@ import TimeEntry from '../models/TimeEntry.js';
 import PTORequest from '../models/PTORequest.js';
 import { IUser, ITimeEntry } from '../types/models.js';
 
-/**
- * AdminService
- * Encapsulates admin/business logic (DB queries, aggregations, XLSX generation).
- * Controllers must keep the same signatures and orchestrate validation/headers/cookies.
- */
 export const AdminService = {
-  /**
-   * Get all users without password field
-   */
   getAllUsers: async (): Promise<IUser[]> => {
     const users = (await User.find().select('-password')) as IUser[];
     return users;
   },
 
-  /**
-   * Get user time entries with optional date range
-   */
   getUserTimeEntries: async (params: {
     userId: string;
     startDate?: string;
@@ -44,9 +33,6 @@ export const AdminService = {
     return timeEntries;
   },
 
-  /**
-   * Aggregate time report grouped by user with total hours and entries
-   */
   getTimeReport: async (params: { startDate: string; endDate: string }) => {
     const { startDate, endDate } = params;
 
@@ -87,9 +73,6 @@ export const AdminService = {
     }>;
   },
 
-  /**
-   * Build aggregation for PTO export and return XLSX buffer + filename
-   */
   exportPTORequestsToXLSX: async (params: {
     search?: string;
     status?: 'pending' | 'approved' | 'denied' | 'all';
@@ -169,9 +152,6 @@ export const AdminService = {
     return { buffer, filename };
   },
 
-  /**
-   * Admin paginated time logs query using aggregation
-   */
   getTimeLogs: async (params: {
     search?: string;
     status?: 'all' | 'active' | 'completed';
@@ -323,9 +303,6 @@ export const AdminService = {
     };
   },
 
-  /**
-   * Build XLSX for admin time logs export with timezone formatting
-   */
   exportTimeLogsXLSX: async (params: {
     search?: string;
     status?: 'all' | 'active' | 'completed';

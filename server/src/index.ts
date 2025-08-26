@@ -28,7 +28,6 @@ app.use(express.json());
 app.use(cookieParser() as any);
 app.use(morgan('combined'));
 
-// Proper CORS with credentials and exposed headers for downloads
 app.use(
   cors({
     origin: (CORS_ORIGIN || '')
@@ -69,7 +68,6 @@ const connectDB = async () => {
 const handler = async (event: any, context: any) => {
   context.callbackWaitsForEmptyEventLoop = false;
   await connectDB();
-  // Ensure binary responses (e.g., Excel .xlsx) are encoded correctly through API Gateway
   const serverlessHandler = serverless(app, {
     binary: [
       'application/octet-stream',

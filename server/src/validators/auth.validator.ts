@@ -1,11 +1,9 @@
 import { z } from 'zod';
 
-// Shared primitives
 const email = z.string().email('Please enter a valid email');
 const firstName = z.string().trim().min(1, 'First name is required');
 const lastName = z.string().trim().min(1, 'Last name is required');
 
-// Password policy aligned with utils/validation.ts
 const password = z
   .string()
   .min(8, 'Password must be at least 8 characters long')
@@ -14,7 +12,6 @@ const password = z
   .regex(/[0-9]/, 'Password must contain at least one number')
   .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
 
-// Schemas
 export const loginSchema = z.object({
   email,
   password: z.string().min(1, 'Password is required'),
@@ -34,7 +31,6 @@ export const validatePasswordSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-// For future: registration DTO (routes currently do not expose register)
 export const registerSchema = z.object({
   firstName,
   lastName,

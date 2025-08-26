@@ -1,10 +1,6 @@
 import { Response } from 'express';
 import type { CookieOptions } from 'express';
 
-/**
- * Standard success response helper
- * Shape preserved: { success: true, data, message? }
- */
 export function sendSuccess<T = unknown>(res: Response, data: T, message?: string) {
   return res.json({
     success: true,
@@ -13,10 +9,6 @@ export function sendSuccess<T = unknown>(res: Response, data: T, message?: strin
   });
 }
 
-/**
- * Standard error response helper
- * Shape preserved: { success: false, message, errors? }
- */
 export function sendError(
   res: Response,
   statusCode: number,
@@ -30,11 +22,6 @@ export function sendError(
   });
 }
 
-/**
- * Get environment-aware cookie options for auth token
- * - Production: secure, none
- * - Development: not secure, lax
- */
 export function getCookieOptions(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): CookieOptions {
   const isProd = process.env.NODE_ENV === 'production';
   return {
@@ -45,9 +32,6 @@ export function getCookieOptions(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): Co
   };
 }
 
-/**
- * Set consistent XLSX export headers
- */
 export function setExportHeaders(res: Response, filename: string) {
   res.setHeader(
     'Content-Type',
