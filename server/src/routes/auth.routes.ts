@@ -1,5 +1,4 @@
 import express from 'express';
-import { body } from 'express-validator';
 import {
   login,
   getProfile,
@@ -9,23 +8,25 @@ import {
   logout,
 } from '../controllers/auth.controller.js';
 import { auth } from '../middleware/auth.js';
+import { validateRequest } from '../middleware/validateRequest.js';
 import {
-  loginValidation,
-  updatePasswordValidation,
-  updateProfileValidation,
+  loginSchema,
+  updatePasswordSchema,
+  updateProfileSchema,
+  validatePasswordSchema,
 } from '../validators/auth.validator.js';
 
 const router = express.Router();
 
-router.post('/login', loginValidation, login);
+router.post('/login', validateRequest({ body: loginSchema }), login);
 router.post('/logout', logout);
 router.get('/profile', auth, getProfile);
-router.put('/profile', auth, updateProfileValidation, updateProfile);
-router.put('/password', auth, updatePasswordValidation, updatePassword);
+router.put('/profile', auth, validateRequest({ body: updateProfileSchema }), updateProfile);
+router.put('/password', auth, validateRequest({ body: updatePasswordSchema }), updatePassword);
 router.post(
   '/validate-password',
   auth,
-  body('password').notEmpty().withMessage('Password is required'),
+  validateRequest({ body: validatePasswordSchema }),
   validateCurrentPassword,
 );
 

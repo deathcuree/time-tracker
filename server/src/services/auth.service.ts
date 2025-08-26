@@ -13,13 +13,17 @@ export const AuthService = {
    * @param userId string user id
    * @returns token string
    */
-  generateToken: (userId: string): string => {
+  /**
+   * Generate JWT token for a user with standardized payload
+   * payload: { sub, role, iat, exp }
+   */
+  generateToken: (userId: string, role: 'user' | 'admin'): string => {
     const JWT_SECRET = process.env.JWT_SECRET;
     if (!JWT_SECRET) {
       throw new Error('JWT secret not configured');
     }
     try {
-      return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+      return jwt.sign({ sub: userId, role }, JWT_SECRET, { expiresIn: '7d' });
     } catch {
       throw new Error('Failed to generate authentication token');
     }
@@ -54,7 +58,7 @@ export const AuthService = {
 
     await user.save();
 
-    const token = AuthService.generateToken(user._id.toString());
+    const token = AuthService.generateToken(user._id.toString(), (user as IUser).role);
     const safe = await User.findById(user._id).select('-password');
     return { user: safe, token };
   },
@@ -86,7 +90,7 @@ export const AuthService = {
       throw err;
     }
 
-    const token = AuthService.generateToken(user._id.toString());
+    const token = AuthService.generateToken(user._id.toString(), (user as IUser).role);
     const safe = await User.findById(user._id).select('-password');
     return { user: safe, token };
   },

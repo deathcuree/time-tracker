@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import User from '../models/User.js';
 import { IUser } from '../types/models.js';
 import { AdminService } from '../services/admin.service.js';
+import { ReportService } from '../services/report.service.js';
+import { UserManagementService } from '../services/userManagement.service.js';
 import {
   TimeEntriesParams,
   TimeEntriesQuery,
@@ -10,6 +11,7 @@ import {
   UpdateUserRoleBody,
   UpdateUserRoleParams,
 } from '../types/admin.js';
+import { setExportHeaders } from '../utils/response.js';
 
 /**
  * GET /api/admin/users
@@ -85,9 +87,7 @@ export const updateUserRole = async (
       return;
     }
 
-    const user = (await User.findByIdAndUpdate(userId, { role }, { new: true }).select(
-      '-password',
-    )) as IUser | null;
+    const user = (await UserManagementService.updateUserRole(userId, role)) as IUser | null;
 
     if (!user) {
       res.status(404).json({ message: 'User not found' });
@@ -116,20 +116,12 @@ export const exportTableData = async (
   try {
     const { search, status } = req.query;
 
-    const { buffer, filename } = await AdminService.exportPTORequestsToXLSX({
+    const { buffer, filename } = await ReportService.exportPTORequestsToXLSX({
       search,
       status,
     });
 
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Transfer-Encoding', 'binary');
-    res.setHeader('Cache-Control', 'no-store, no-transform');
-    res.setHeader('Pragma', 'no-cache');
-
+    setExportHeaders(res, filename);
     res.status(200).end(buffer);
   } catch (error) {
     res.status(500).json({ message: 'Failed to export data', error: (error as Error).message });
@@ -208,7 +200,7 @@ export const exportTimeLogs = async (
   try {
     const { search = '', status = 'all', month, year, startDate, endDate, tzOffset } = req.query;
 
-    const { buffer, filename } = await AdminService.exportTimeLogsXLSX({
+    const { buffer, filename } = await ReportService.exportTimeLogsXLSX({
       search,
       status,
       month,
@@ -218,15 +210,7 @@ export const exportTimeLogs = async (
       tzOffset,
     });
 
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Transfer-Encoding', 'binary');
-    res.setHeader('Cache-Control', 'no-store, no-transform');
-    res.setHeader('Pragma', 'no-cache');
-
+    setExportHeaders(res, filename);
     res.status(200).end(buffer);
   } catch (error) {
     res

@@ -1,142 +1,93 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { IUser, ILoginRequest, IRegisterRequest } from '../types/models.js';
-import { validateLoginInput, validateRegistrationInput } from '../utils/validation.js';
 import { AuthService } from '../services/auth.service.js';
+import { sendSuccess, sendError, getCookieOptions } from '../utils/response.js';
 
 /**
  * POST /api/auth/register
- * Validates input, delegates user creation to AuthService, sets cookie, and returns created user (sans password).
- * Express handler signature and response shape are preserved.
+ * Validates input (handled by Zod in routes), delegates to AuthService, sets cookie, returns safe user.
+ * Response shape preserved.
  */
 export const register = async (
   req: Request<{}, {}, IRegisterRequest>,
   res: Response,
-): Promise<void> => {
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
     const { firstName, lastName, email, password } = req.body;
-
-    const validation = validateRegistrationInput(email, password, firstName, lastName);
-    if (!validation.success) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validation.errors,
-      });
-      return;
-    }
 
     try {
       const { user, token } = await AuthService.register({ firstName, lastName, email, password });
 
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      res.cookie('token', token, getCookieOptions());
 
-      res.status(201).json({
-        success: true,
-        data: {
-          user: {
-            id: (user as any)._id,
-            firstName: (user as any).firstName,
-            lastName: (user as any).lastName,
-            name: (user as any).name,
-            email: (user as any).email,
-            role: (user as any).role,
-          },
+      // Preserve original success shape
+      return sendSuccess(res, {
+        user: {
+          id: (user as any)._id,
+          firstName: (user as any).firstName,
+          lastName: (user as any).lastName,
+          name: (user as any).name,
+          email: (user as any).email,
+          role: (user as any).role,
         },
       });
     } catch (e) {
       const err = e as any;
       if (err?.code === 'EMAIL_TAKEN') {
-        res.status(400).json({
-          success: false,
-          message: 'Email already registered',
-          errors: { email: 'This email is already registered' },
+        return sendError(res, 400, 'Email already registered', {
+          email: 'This email is already registered',
         });
-        return;
       }
       throw err;
     }
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error during registration',
-      error: (error as Error).message,
-    });
+    next(error);
   }
 };
 
 /**
  * POST /api/auth/login
- * Validates input, delegates auth to AuthService, sets cookie, and returns user data.
+ * Validates input (Zod via route), delegates to AuthService, sets cookie, returns safe user.
  * Response shape preserved.
  */
-export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response): Promise<void> => {
+export const login = async (
+  req: Request<{}, {}, ILoginRequest>,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
     const { email, password } = req.body;
-
-    const validation = validateLoginInput(email, password);
-    if (!validation.success) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validation.errors,
-      });
-      return;
-    }
 
     try {
       const { user, token } = await AuthService.login(email, password);
 
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      res.cookie('token', token, getCookieOptions());
 
-      res.json({
-        success: true,
-        data: {
-          user: {
-            id: (user as any)._id,
-            firstName: (user as any).firstName,
-            lastName: (user as any).lastName,
-            name: (user as any).name,
-            email: (user as any).email,
-            role: (user as any).role,
-          },
+      return sendSuccess(res, {
+        user: {
+          id: (user as any)._id,
+          firstName: (user as any).firstName,
+          lastName: (user as any).lastName,
+          name: (user as any).name,
+          email: (user as any).email,
+          role: (user as any).role,
         },
       });
     } catch (e) {
       const err = e as any;
       if (err?.code === 'AUTH_NO_USER') {
-        res.status(401).json({
-          success: false,
-          message: 'Authentication failed',
-          errors: { email: 'No account found with this email' },
+        return sendError(res, 401, 'Authentication failed', {
+          email: 'No account found with this email',
         });
-        return;
       }
       if (err?.code === 'AUTH_BAD_PASSWORD') {
-        res.status(401).json({
-          success: false,
-          message: 'Authentication failed',
-          errors: { password: 'Incorrect password' },
-        });
-        return;
+        return sendError(res, 401, 'Authentication failed', { password: 'Incorrect password' });
       }
       throw err;
     }
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error during login',
-      error: (error as Error).message,
-    });
+    next(error);
   }
 };
 
@@ -145,11 +96,12 @@ export const login = async (req: Request<{}, {}, ILoginRequest>, res: Response):
  * Clears the auth token cookie.
  * Response preserved.
  */
-export const logout = (req: Request, res: Response): void => {
+export const logout = (_req: Request, res: Response): void => {
+  // Match cookie attributes to ensure proper clearing
   res.clearCookie('token', {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   });
   res.json({ success: true, message: 'Logged out successfully' });
 };
@@ -159,26 +111,19 @@ export const logout = (req: Request, res: Response): void => {
  * Returns authenticated user's profile (sans password).
  * Response preserved.
  */
-export const getProfile = async (req: Request, res: Response): Promise<void> => {
+export const getProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
     const user = (await AuthService.getProfile(req.user!._id.toString())) as IUser | null;
     if (!user) {
-      res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-      return;
+      return sendError(res, 404, 'User not found');
     }
-    res.json({
-      success: true,
-      data: user,
-    });
+    return sendSuccess(res, user);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching profile',
-      error: (error as Error).message,
-    });
+    next(error);
   }
 };
 
@@ -187,17 +132,13 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
  * Updates firstName and lastName for authenticated user.
  * Response preserved.
  */
-export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+export const updateProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
-    const { firstName, lastName } = req.body;
-
-    if (!firstName || !lastName) {
-      res.status(400).json({
-        success: false,
-        message: 'First name and last name are required',
-      });
-      return;
-    }
+    const { firstName, lastName } = req.body as { firstName: string; lastName: string };
 
     const user = (await AuthService.updateProfile(
       req.user!._id.toString(),
@@ -206,23 +147,12 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
     )) as IUser | null;
 
     if (!user) {
-      res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-      return;
+      return sendError(res, 404, 'User not found');
     }
 
-    res.json({
-      success: true,
-      data: user,
-    });
+    return sendSuccess(res, user);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating profile',
-      error: (error as Error).message,
-    });
+    next(error);
   }
 };
 
@@ -231,49 +161,32 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
  * Updates authenticated user's password after verifying current password.
  * Response preserved.
  */
-export const updatePassword = async (req: Request, res: Response): Promise<void> => {
+export const updatePassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      res.status(400).json({
-        success: false,
-        message: 'Current password and new password are required',
-      });
-      return;
-    }
+    const { currentPassword, newPassword } = req.body as {
+      currentPassword: string;
+      newPassword: string;
+    };
 
     try {
       await AuthService.updatePassword(req.user!._id.toString(), currentPassword, newPassword);
-      res.json({
-        success: true,
-        message: 'Password updated successfully',
-      });
+      return sendSuccess(res, null, 'Password updated successfully');
     } catch (e) {
       const err = e as any;
       if (err?.code === 'USER_NOT_FOUND') {
-        res.status(500).json({
-          success: false,
-          message: 'Server error while updating password',
-          error: 'User not found',
-        });
-        return;
+        return sendError(res, 500, 'Server error while updating password', 'User not found');
       }
       if (err?.code === 'BAD_CURRENT_PASSWORD') {
-        res.status(401).json({
-          success: false,
-          message: 'Current password is incorrect',
-        });
-        return;
+        return sendError(res, 401, 'Current password is incorrect');
       }
       throw err;
     }
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating password',
-      error: (error as Error).message,
-    });
+    next(error);
   }
 };
 
@@ -282,49 +195,28 @@ export const updatePassword = async (req: Request, res: Response): Promise<void>
  * Validates that the provided password matches the current password.
  * Response preserved.
  */
-export const validateCurrentPassword = async (req: Request, res: Response): Promise<void> => {
+export const validateCurrentPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<Response | void> => {
   try {
-    const { password } = req.body;
-
-    if (!password) {
-      res.status(400).json({
-        success: false,
-        message: 'Password is required',
-      });
-      return;
-    }
+    const { password } = req.body as { password: string };
 
     try {
       const isMatch = await AuthService.validateCurrentPassword(req.user!._id.toString(), password);
       if (!isMatch) {
-        res.status(401).json({
-          success: false,
-          message: 'Current password is incorrect',
-        });
-        return;
+        return sendError(res, 401, 'Current password is incorrect');
       }
-
-      res.json({
-        success: true,
-        message: 'Password is valid',
-      });
+      return sendSuccess(res, null, 'Password is valid');
     } catch (e) {
       const err = e as any;
       if (err?.code === 'USER_NOT_FOUND') {
-        res.status(500).json({
-          success: false,
-          message: 'Server error while validating password',
-          error: 'User not found',
-        });
-        return;
+        return sendError(res, 500, 'Server error while validating password', 'User not found');
       }
       throw err;
     }
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Server error while validating password',
-      error: (error as Error).message,
-    });
+    next(error);
   }
 };

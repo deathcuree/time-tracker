@@ -1,49 +1,56 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { AuthError, ForbiddenError } from '../utils/errors.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
+  // Fail fast if misconfigured
   process.exit(1);
 }
 
 interface JwtPayload {
-  userId: string;
+  sub: string; // user id
+  role?: 'user' | 'admin';
+  iat?: number;
+  exp?: number;
 }
 
-export const auth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const auth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = req.cookies.token;
-    
+    const token = req.cookies?.token as string | undefined;
+
     if (!token) {
-      res.status(401).json({ message: 'Authentication required' });
-      return;
+      return next(new AuthError('Authentication required'));
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    const user = await User.findById(decoded.userId);
 
+    const userId = decoded.sub || (decoded as any).userId; // backward-compatibility
+    if (!userId) {
+      return next(new AuthError('Invalid token'));
+    }
+
+    const user = await User.findById(userId);
     if (!user) {
-      res.status(401).json({ message: 'User not found' });
-      return;
+      return next(new AuthError('User not found'));
     }
 
     req.user = user;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Invalid token' });
+    return next();
+  } catch {
+    return next(new AuthError('Invalid token'));
   }
 };
 
-export const isAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const isAdmin = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   try {
     if (req.user?.role !== 'admin') {
-      res.status(403).json({ message: 'Admin access required' });
-      return;
+      return next(new ForbiddenError('Admin access required'));
     }
-    next();
+    return next();
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    return next(error);
   }
-}; 
+};

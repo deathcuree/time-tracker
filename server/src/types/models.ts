@@ -14,6 +14,14 @@ export interface IUser extends Document {
   updatedAt: Date;
 }
 
+export type SafeUser = Omit<IUser, 'password'>;
+export interface JwtPayload {
+  sub: string;
+  role: 'user' | 'admin';
+  iat?: number;
+  exp?: number;
+}
+
 export interface ITimeEntry extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
