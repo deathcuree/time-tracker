@@ -1,6 +1,7 @@
 # SHE-TIME-TRACKER
 
 ## Tech Stack
+
 - Frontend
   - React 18 + TypeScript
   - Vite
@@ -25,11 +26,12 @@
   - Axios (withCredentials)
 
 ## Features
+
 - Time tracking: clock in/out, active vs. completed status, monthly/date range filters, precise hours computation
 - PTO management: request, approve/deny, search and status filters
-- User management: roles (admin/user), profile update, password change with current-password validation
+- User management: roles, profile update, password change with current-password validation
 - Admin time logs: search, pagination, filters; export all matching logs to Excel
 - Export to Excel: PTO table and Time Logs with correct headers, binary transfer, and timezone-aware formatting
 - Authentication: register/login/logout via JWT in secure HttpOnly cookie (secure, sameSite=none)
 - Security and reliability: Helmet headers, CORS with credentials, validation, structured errors, /health endpoint
-- UI/UX: responsive design, dark/light theme, charts, toasts
+- UI/UX: responsive design, dark/light theme, charts, toasts, modals
