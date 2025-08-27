@@ -30,8 +30,7 @@ app.use(morgan('combined'));
 
 app.use(
   cors({
-    origin: (CORS_ORIGIN || '')
-      .split(',')
+    origin: CORS_ORIGIN.split(',')
       .map((o) => o.trim())
       .filter(Boolean),
     credentials: true,

@@ -1,22 +1,23 @@
 import { z } from 'zod';
 
 const emailSchema = z.string().email({
-  message: "Invalid email format"
+  message: 'Invalid email format',
 });
 
-const passwordSchema = z.string()
-  .min(8, "Password must be at least 8 characters long")
-  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-  .regex(/[0-9]/, "Password must contain at least one number")
-  .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character");
+const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters long')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
 
 export const validateEmail = (email: string): { success: boolean; error?: string } => {
   const result = emailSchema.safeParse(email);
   if (!result.success) {
     return {
       success: false,
-      error: result.error.errors[0]?.message || "Invalid email format"
+      error: result.error.errors[0]?.message || 'Invalid email format',
     };
   }
   return { success: true };
@@ -27,30 +28,33 @@ export const validatePassword = (password: string): { success: boolean; error?: 
   if (!result.success) {
     return {
       success: false,
-      error: result.error.errors[0]?.message || "Invalid password format"
+      error: result.error.errors[0]?.message || 'Invalid password format',
     };
   }
   return { success: true };
 };
 
-export const validateLoginInput = (email: string, password: string): { 
-  success: boolean; 
-  errors: { email?: string; password?: string } 
+export const validateLoginInput = (
+  email: string,
+  password: string,
+): {
+  success: boolean;
+  errors: { email?: string; password?: string };
 } => {
   const errors: { email?: string; password?: string } = {};
-  
+
   const emailValidation = validateEmail(email);
   if (!emailValidation.success) {
     errors.email = emailValidation.error;
   }
-  
+
   if (!password) {
-    errors.password = "Password is required";
+    errors.password = 'Password is required';
   }
-  
+
   return {
     success: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
 };
 
@@ -58,7 +62,7 @@ export const validateRegistrationInput = (
   email: string,
   password: string,
   firstName: string,
-  lastName: string
+  lastName: string,
 ): {
   success: boolean;
   errors: {
@@ -66,7 +70,7 @@ export const validateRegistrationInput = (
     password?: string;
     firstName?: string;
     lastName?: string;
-  }
+  };
 } => {
   const errors: {
     email?: string;
@@ -74,27 +78,27 @@ export const validateRegistrationInput = (
     firstName?: string;
     lastName?: string;
   } = {};
-  
+
   const emailValidation = validateEmail(email);
   if (!emailValidation.success) {
     errors.email = emailValidation.error;
   }
-  
+
   const passwordValidation = validatePassword(password);
   if (!passwordValidation.success) {
     errors.password = passwordValidation.error;
   }
-  
+
   if (!firstName?.trim()) {
-    errors.firstName = "First name is required";
+    errors.firstName = 'First name is required';
   }
-  
+
   if (!lastName?.trim()) {
-    errors.lastName = "Last name is required";
+    errors.lastName = 'Last name is required';
   }
-  
+
   return {
     success: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
-}; 
+};
