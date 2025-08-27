@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { IUser } from '../types/models.js';
-import { AdminService } from '../services/admin.service.js';
-import { ReportService } from '../services/report.service.js';
-import { UserManagementService } from '../services/userManagement.service.js';
+import { IUser } from '../../types/models.js';
+import { AdminService } from './admin.service.js';
+import { ReportService } from '../../shared/services/report.service.js';
+import { UserManagementService } from './userManagement.service.js';
 import {
   TimeEntriesParams,
   TimeEntriesQuery,
@@ -10,8 +10,8 @@ import {
   TimeReportQuery,
   UpdateUserRoleBody,
   UpdateUserRoleParams,
-} from '../types/admin.js';
-import { setExportHeaders } from '../utils/response.js';
+} from '../../types/admin.js';
+import { setExportHeaders } from '../../shared/utils/response.js';
 
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
   try {

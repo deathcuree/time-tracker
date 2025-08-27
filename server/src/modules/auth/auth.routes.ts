@@ -6,15 +6,15 @@ import {
   updatePassword,
   validateCurrentPassword,
   logout,
-} from '../controllers/auth.controller.js';
-import { auth } from '../middleware/auth.js';
-import { validateRequest } from '../middleware/validateRequest.js';
+} from './auth.controller.js';
+import { auth } from '../../shared/middleware/auth.js';
+import { validateRequest } from '../../shared/middleware/validateRequest.js';
 import {
   loginSchema,
   updatePasswordSchema,
   updateProfileSchema,
   validatePasswordSchema,
-} from '../validators/auth.validator.js';
+} from './auth.validator.js';
 
 const router = express.Router();
 

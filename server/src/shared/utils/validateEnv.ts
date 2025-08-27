@@ -10,7 +10,8 @@ export function validateEnv() {
 
   const result = envSchema.safeParse(process.env);
   if (!result.success) {
+    // eslint-disable-next-line no-console
     console.error('❌ Invalid environment variables:', result.error.format());
     process.exit(1);
   }
-} 
+}

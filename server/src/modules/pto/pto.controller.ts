@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { IPTORequestBody } from '../types/models.js';
-import { PTOService } from '../services/pto.service.js';
-import { UpdateRequestBody, UpdateRequestParams } from '../types/pto.js';
+import { IPTORequestBody } from '../../types/models.js';
+import { PTOService } from './pto.service.js';
+import { UpdateRequestBody, UpdateRequestParams } from '../../types/pto.js';
 
 export const createRequest = async (
   req: Request<{}, {}, IPTORequestBody>,

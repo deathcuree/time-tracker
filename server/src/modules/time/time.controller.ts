@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { ITimeEntry } from '../types/models.js';
-import { TimeService } from '../services/time.service.js';
+import { ITimeEntry } from '../../types/models.js';
+import { TimeService } from './time.service.js';
 
 export const clockIn = async (req: Request, res: Response): Promise<void> => {
   try {

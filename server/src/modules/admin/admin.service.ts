@@ -1,8 +1,79 @@
+import mongoose from 'mongoose';
 import * as XLSX from 'xlsx';
-import PTORequest from '../models/PTORequest.js';
-import TimeEntry from '../models/TimeEntry.js';
+import User from '../user/user.model.js';
+import TimeEntry from '../time/time.model.js';
+import PTORequest from '../pto/pto.model.js';
+import { IUser, ITimeEntry } from '../../types/models.js';
 
-export const ReportService = {
+export const AdminService = {
+  getAllUsers: async (): Promise<IUser[]> => {
+    const users = (await User.find().select('-password')) as IUser[];
+    return users;
+  },
+
+  getUserTimeEntries: async (params: {
+    userId: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ITimeEntry[]> => {
+    const { userId, startDate, endDate } = params;
+
+    const query: { userId: mongoose.Types.ObjectId; date?: { $gte: Date; $lte: Date } } = {
+      userId: new mongoose.Types.ObjectId(userId),
+    };
+
+    if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+
+    const timeEntries = (await TimeEntry.find(query).sort({ date: -1 })) as ITimeEntry[];
+    return timeEntries;
+  },
+
+  getTimeReport: async (params: { startDate: string; endDate: string }) => {
+    const { startDate, endDate } = params;
+
+    const timeEntries = await TimeEntry.aggregate([
+      {
+        $match: {
+          date: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate),
+          },
+          clockOut: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: '$userId',
+          totalHours: { $sum: '$totalHours' },
+          entries: { $push: '$$ROOT' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+      { $project: { 'user.password': 0 } },
+    ]);
+
+    return timeEntries as Array<{
+      _id: mongoose.Types.ObjectId;
+      totalHours: number;
+      entries: ITimeEntry[];
+      user: IUser;
+    }>;
+  },
+
+  // Kept here for compatibility, though exports are handled by ReportService in shared/services
   exportPTORequestsToXLSX: async (params: {
     search?: string;
     status?: 'pending' | 'approved' | 'denied' | 'all';
@@ -80,6 +151,154 @@ export const ReportService = {
     const filename = `table-export-${today}.xlsx`;
 
     return { buffer, filename };
+  },
+
+  getTimeLogs: async (params: {
+    search?: string;
+    status?: 'all' | 'active' | 'completed';
+    month?: string;
+    year?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: string;
+    limit?: string;
+  }): Promise<{
+    items: any[];
+    pagination: { total: number; page: number; pages: number };
+  }> => {
+    const {
+      search = '',
+      status = 'all',
+      month,
+      year,
+      startDate,
+      endDate,
+      page = '1',
+      limit = '10',
+    } = params;
+
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, Number(limit) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const match: any = {};
+
+    let rangeStart: Date | undefined;
+    let rangeEnd: Date | undefined;
+
+    if (year !== undefined && month !== undefined) {
+      const y = Number(year);
+      const m = Number(month);
+      rangeStart = new Date(y, m, 1, 0, 0, 0, 0);
+      rangeEnd = new Date(y, m + 1, 0, 23, 59, 59, 999);
+    } else if (startDate && endDate) {
+      rangeStart = new Date(startDate);
+      rangeEnd = new Date(endDate);
+    }
+
+    if (rangeStart && rangeEnd) {
+      match.date = { $gte: rangeStart, $lte: rangeEnd };
+    }
+
+    if (status === 'active') {
+      match.clockOut = null;
+    } else if (status === 'completed') {
+      match.clockOut = { $ne: null };
+    }
+
+    const pipeline: any[] = [
+      { $match: match },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+      { $sort: { date: -1, clockIn: -1 } },
+      {
+        $facet: {
+          items: [
+            { $skip: skip },
+            { $limit: limitNum },
+            {
+              $project: {
+                _id: 1,
+                date: 1,
+                clockIn: 1,
+                clockOut: 1,
+                user: {
+                  _id: '$user._id',
+                  firstName: '$user.firstName',
+                  lastName: '$user.lastName',
+                  email: '$user.email',
+                },
+                hours: {
+                  $round: [
+                    {
+                      $divide: [
+                        {
+                          $subtract: [
+                            {
+                              $cond: [{ $eq: ['$clockOut', null] }, '$$NOW', '$clockOut'],
+                            },
+                            '$clockIn',
+                          ],
+                        },
+                        1000 * 60 * 60,
+                      ],
+                    },
+                    2,
+                  ],
+                },
+                status: {
+                  $cond: [{ $eq: ['$clockOut', null] }, 'active', 'completed'],
+                },
+              },
+            },
+          ],
+          total: [{ $count: 'count' }],
+        },
+      },
+    ];
+
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const searchStr = search.trim();
+      pipeline.splice(3, 0, {
+        $match: {
+          $or: [
+            { 'user.firstName': { $regex: searchStr, $options: 'i' } },
+            { 'user.lastName': { $regex: searchStr, $options: 'i' } },
+            { 'user.email': { $regex: searchStr, $options: 'i' } },
+            {
+              $expr: {
+                $regexMatch: {
+                  input: { $dateToString: { date: '$date', format: '%Y-%m-%d' } },
+                  regex: searchStr,
+                  options: 'i',
+                },
+              },
+            },
+          ],
+        },
+      });
+    }
+
+    const aggResult = await TimeEntry.aggregate(pipeline);
+    const items = (aggResult?.[0]?.items ?? []) as any[];
+    const total = Number(aggResult?.[0]?.total?.[0]?.count ?? 0);
+    const pages = Math.max(1, Math.ceil(total / limitNum));
+
+    return {
+      items,
+      pagination: {
+        total,
+        page: pageNum,
+        pages,
+      },
+    };
   },
 
   exportTimeLogsXLSX: async (params: {
@@ -179,31 +398,6 @@ export const ReportService = {
         },
       },
       { $unwind: '$user' },
-    ];
-
-    if (search && typeof search === 'string' && search.trim().length > 0) {
-      const searchStr = search.trim();
-      pipeline.push({
-        $match: {
-          $or: [
-            { 'user.firstName': { $regex: searchStr, $options: 'i' } },
-            { 'user.lastName': { $regex: searchStr, $options: 'i' } },
-            { 'user.email': { $regex: searchStr, $options: 'i' } },
-            {
-              $expr: {
-                $regexMatch: {
-                  input: { $dateToString: { date: '$date', format: '%Y-%m-%d' } },
-                  regex: searchStr,
-                  options: 'i',
-                },
-              },
-            },
-          ],
-        },
-      });
-    }
-
-    pipeline.push(
       { $sort: { date: -1, clockIn: -1 } },
       {
         $project: {
@@ -240,7 +434,29 @@ export const ReportService = {
           },
         },
       },
-    );
+    ];
+
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const searchStr = search.trim();
+      pipeline.splice(3, 0, {
+        $match: {
+          $or: [
+            { 'user.firstName': { $regex: searchStr, $options: 'i' } },
+            { 'user.lastName': { $regex: searchStr, $options: 'i' } },
+            { 'user.email': { $regex: searchStr, $options: 'i' } },
+            {
+              $expr: {
+                $regexMatch: {
+                  input: { $dateToString: { date: '$date', format: '%Y-%m-%d' } },
+                  regex: searchStr,
+                  options: 'i',
+                },
+              },
+            },
+          ],
+        },
+      });
+    }
 
     const items = await TimeEntry.aggregate(pipeline);
 

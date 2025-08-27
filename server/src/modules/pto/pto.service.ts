@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import PTORequest from '../models/PTORequest.js';
-import User from '../models/User.js';
-import { IPTORequest, IPTORequestBody } from '../types/models.js';
+import PTORequest from './pto.model.js';
+import User from '../user/user.model.js';
+import { IPTORequest, IPTORequestBody } from '../../types/models.js';
 
 const MONTHLY_PTO_HOURS = 16;
 

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import TimeEntry from '../models/TimeEntry.js';
-import { ITimeEntry } from '../types/models.js';
+import TimeEntry from './time.model.js';
+import { ITimeEntry } from '../../types/models.js';
 
 export const TimeService = {
   clockIn: async (userId: string): Promise<ITimeEntry> => {

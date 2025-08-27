@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
-import { IUser, IRegisterRequest } from '../types/models.js';
+import User from '../user/user.model.js';
+import { IUser, IRegisterRequest } from '../../types/models.js';
 
 export const AuthService = {
   generateToken: (userId: string, role: 'user' | 'admin'): string => {

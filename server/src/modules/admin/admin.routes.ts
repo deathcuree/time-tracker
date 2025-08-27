@@ -7,10 +7,10 @@ import {
   exportTableData,
   getTimeLogs,
   exportTimeLogs,
-} from '../controllers/admin.controller.js';
-import { auth, isAdmin } from '../middleware/auth.js';
-import { validateRequest } from '../middleware/validateRequest.js';
-import { updateRoleSchema, updateRoleParamsSchema } from '../validators/user.validator.js';
+} from './admin.controller.js';
+import { auth, isAdmin } from '../../shared/middleware/auth.js';
+import { validateRequest } from '../../shared/middleware/validateRequest.js';
+import { updateRoleSchema, updateRoleParamsSchema } from '../user/user.validator.js';
 
 const router = express.Router();
 

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import User from '../../modules/user/user.model.js';
 import { AuthError, ForbiddenError } from '../utils/errors.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { IUser, ILoginRequest, IRegisterRequest } from '../types/models.js';
-import { AuthService } from '../services/auth.service.js';
-import { sendSuccess, sendError, getCookieOptions } from '../utils/response.js';
+import { IUser, ILoginRequest, IRegisterRequest } from '../../types/models.js';
+import { AuthService } from './auth.service.js';
+import { sendSuccess, sendError, getCookieOptions } from '../../shared/utils/response.js';
 
 export const register = async (
   req: Request<{}, {}, IRegisterRequest>,

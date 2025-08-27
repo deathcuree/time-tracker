@@ -6,14 +6,14 @@ import {
   updateRequestStatus,
   getMonthlyRequestCount,
   getYearlyPTOHours,
-} from '../controllers/pto.controller.js';
-import { auth, isAdmin } from '../middleware/auth.js';
-import { validateRequest } from '../middleware/validateRequest.js';
+} from './pto.controller.js';
+import { auth, isAdmin } from '../../shared/middleware/auth.js';
+import { validateRequest } from '../../shared/middleware/validateRequest.js';
 import {
   ptoRequestSchema,
   updateRequestParamsSchema,
   updateRequestStatusSchema,
-} from '../validators/pto.validator.js';
+} from './pto.validator.js';
 
 const router = Router();
 

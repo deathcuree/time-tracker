@@ -1,20 +1,20 @@
 import 'dotenv/config';
-import express, { Express, Request, Response, NextFunction } from 'express';
+import express, { Express, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import authRoutes from './routes/auth.routes.js';
-import timeRoutes from './routes/time.routes.js';
-import ptoRoutes from './routes/pto.routes.js';
-import adminRoutes from './routes/admin.routes.js';
-import userRoutes from './routes/user.routes.js';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import serverless from 'serverless-http';
-import { validateEnv } from './utils/validateEnv.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import { sendError } from './utils/response.js';
-import { logger } from './utils/logger.js';
+import authRoutes from './modules/auth/auth.routes.js';
+import timeRoutes from './modules/time/time.routes.js';
+import ptoRoutes from './modules/pto/pto.routes.js';
+import adminRoutes from './modules/admin/admin.routes.js';
+import userRoutes from './modules/user/user.routes.js';
+import { validateEnv } from './shared/utils/validateEnv.js';
+import { errorHandler } from './shared/middleware/errorHandler.js';
+import { sendError } from './shared/utils/response.js';
+import { logger } from './shared/utils/logger.js';
 
 validateEnv();
 

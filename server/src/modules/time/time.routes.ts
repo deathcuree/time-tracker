@@ -6,8 +6,8 @@ import {
   getCurrentStatus,
   getTimeStats,
   deleteTimeEntry,
-} from '../controllers/time.controller.js';
-import { auth } from '../middleware/auth.js';
+} from './time.controller.js';
+import { auth } from '../../shared/middleware/auth.js';
 
 const router = express.Router();
 

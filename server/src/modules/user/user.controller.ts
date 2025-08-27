@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { UserService } from '../services/user.service.js';
-import { createUserSchema } from '../validators/user.validator.js';
+import { UserService } from './user.service.js';
+import { createUserSchema } from './user.validator.js';
 
 export const createUser = async (req: Request, res: Response) => {
   try {

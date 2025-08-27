@@ -1,5 +1,5 @@
-import User from '../models/User.js';
-import { IUser } from '../types/models.js';
+import User from '../user/user.model.js';
+import { IUser } from '../../types/models.js';
 
 export const UserManagementService = {
   async updateUserRole(userId: string, role: 'user' | 'admin'): Promise<IUser | null> {
