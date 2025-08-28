@@ -14,25 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthYearFilter } from "./MonthYearFilter";
 import { StatusFilter } from "./StatusFilter";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Trash2 } from "lucide-react";
 import { formatDateForDisplay, formatTimeForDisplay } from "@/utils/date";
+import ConfirmDeleteButton from "@/components/shared/ConfirmDeleteButton";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -86,53 +69,28 @@ const TimeEntryRow = memo(
           <StatusBadge status={getStatus(entry)} />
         </TableCell>
         <TableCell className="text-center">
-          <AlertDialog>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      disabled={isActive}
-                      aria-label={
-                        isActive
-                          ? "Cannot delete an active time entry. Clock out first."
-                          : "Delete time entry"
-                      }
-                      title={
-                        isActive
-                          ? "Cannot delete an active time entry. Clock out first."
-                          : "Delete time entry"
-                      }
-                    >
-                      <Trash2 />
-                    </Button>
-                  </AlertDialogTrigger>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isActive ? "Cannot delete active entry" : "Delete entry"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete time entry?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  selected time entry.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => onDelete(entry.id ?? (entry as any)._id)}
-                >
-                  Confirm
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <ConfirmDeleteButton
+            onConfirm={() => onDelete(entry.id ?? (entry as any)._id)}
+            disabled={isActive}
+            disabledTooltip="Cannot delete an active time entry. Clock out first."
+            tooltip="Delete entry"
+            confirmTitle="Delete time entry?"
+            confirmDescription="This action cannot be undone. This will permanently delete the selected time entry."
+            confirmLabel="Confirm"
+            cancelLabel="Cancel"
+            ariaLabel={
+              isActive
+                ? "Cannot delete an active time entry. Clock out first."
+                : "Delete time entry"
+            }
+            title={
+              isActive
+                ? "Cannot delete an active time entry. Clock out first."
+                : "Delete time entry"
+            }
+            size="icon"
+            variant="destructive"
+          />
         </TableCell>
       </TableRow>
     );
