@@ -196,4 +196,34 @@ export const TimeService = {
       deletedId: id,
     };
   },
+
+  deleteTimeEntryByAdmin: async (id: string) => {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      const err: any = new Error('Invalid entry id');
+      err.status = 400;
+      throw err;
+    }
+
+    const entry = (await TimeEntry.findById(id)) as ITimeEntry | null;
+
+    if (!entry) {
+      const err: any = new Error('Time entry not found');
+      err.status = 404;
+      throw err;
+    }
+
+    if (!entry.clockOut) {
+      const err: any = new Error('Cannot delete an active time entry. Please clock out first.');
+      err.status = 400;
+      throw err;
+    }
+
+    await TimeEntry.findByIdAndDelete(id);
+
+    return {
+      success: true,
+      message: 'Time entry deleted successfully',
+      deletedId: id,
+    };
+  },
 };

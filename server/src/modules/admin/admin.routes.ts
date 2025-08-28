@@ -7,6 +7,7 @@ import {
   exportTableData,
   getTimeLogs,
   exportTimeLogs,
+  deleteTimeLog,
 } from './admin.controller.js';
 import { auth, isAdmin } from '../../shared/middleware/auth.js';
 import { validateRequest } from '../../shared/middleware/validateRequest.js';
@@ -22,6 +23,7 @@ router.get('/users/:userId/time-entries', getUserTimeEntries);
 router.get('/reports/time', getTimeReport);
 router.get('/time/logs', getTimeLogs);
 router.get('/time/logs/export', exportTimeLogs);
+router.delete('/time/logs/:id', deleteTimeLog);
 router.patch(
   '/users/:userId/role',
   validateRequest({ params: updateRoleParamsSchema, body: updateRoleSchema }),

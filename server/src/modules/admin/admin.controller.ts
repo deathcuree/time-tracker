@@ -3,6 +3,7 @@ import { IUser } from '../../types/models.js';
 import { AdminService } from './admin.service.js';
 import { ReportService } from '../../shared/services/report.service.js';
 import { UserManagementService } from './userManagement.service.js';
+import { TimeService } from '../time/time.service.js';
 import {
   TimeEntriesParams,
   TimeEntriesQuery,
@@ -190,5 +191,24 @@ export const exportTimeLogs = async (
     res
       .status(500)
       .json({ message: 'Failed to export time logs', error: (error as Error).message });
+  }
+};
+
+export const deleteTimeLog = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params as { id: string };
+
+    const result = await TimeService.deleteTimeEntryByAdmin(id);
+
+    res.status(200).json(result);
+  } catch (error) {
+    const err = error as any;
+    if (typeof err?.status === 'number') {
+      res.status(err.status).json({ success: false, message: err.message });
+      return;
+    }
+    res
+      .status(500)
+      .json({ success: false, message: 'Server error', error: (error as Error).message });
   }
 };

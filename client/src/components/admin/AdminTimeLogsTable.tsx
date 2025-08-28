@@ -25,6 +25,7 @@ import ExportButton from "@/components/shared/ExportButton";
 import { toast } from "@/components/ui/sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { debounce } from "lodash";
+import ConfirmDeleteButton from "@/components/shared/ConfirmDeleteButton";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -176,6 +177,24 @@ export const AdminTimeLogsTable: React.FC = () => {
     load({ year: nextYear, month: nextMonth, page: 1 }).catch(() => {});
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      await adminApi.deleteTimeLog(id);
+      toast.success("Time entry deleted");
+      if (logs.length === 1 && page > 1) {
+        const prev = page - 1;
+        setPage(prev);
+        await load({ page: prev });
+      } else {
+        await load();
+      }
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || "Failed to delete time entry"
+      );
+    }
+  };
+
   const handlePageChange = (p: number) => {
     setPage(p);
     load({ page: p }).catch(() => {});
@@ -265,7 +284,8 @@ export const AdminTimeLogsTable: React.FC = () => {
                 <TableHead className="w-[16%] text-center">
                   Hours Worked
                 </TableHead>
-                <TableHead className="w-[16%] text-center">Status</TableHead>
+                <TableHead className="w-[10%] text-center">Status</TableHead>
+                <TableHead className="w-[6%] text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -275,7 +295,7 @@ export const AdminTimeLogsTable: React.FC = () => {
                 ))}
               {!isBusy && logs.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center h-24">
+                  <TableCell colSpan={7} className="text-center h-24">
                     No time logs found
                   </TableCell>
                 </TableRow>
@@ -306,6 +326,30 @@ export const AdminTimeLogsTable: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-center">
                         <StatusBadge status={item.status} />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <ConfirmDeleteButton
+                          onConfirm={() => handleDelete(item._id)}
+                          disabled={item.status === "active" || !item.clockOut}
+                          disabledTooltip="Cannot delete an active time entry. Clock out first."
+                          tooltip="Delete entry"
+                          confirmTitle="Delete time entry?"
+                          confirmDescription="Are you sure you want to delete this user’s time entry? This action cannot be undone."
+                          confirmLabel="Confirm"
+                          cancelLabel="Cancel"
+                          ariaLabel={
+                            item.status === "active" || !item.clockOut
+                              ? "Cannot delete an active time entry. Clock out first."
+                              : "Delete time entry"
+                          }
+                          title={
+                            item.status === "active" || !item.clockOut
+                              ? "Cannot delete an active time entry. Clock out first."
+                              : "Delete time entry"
+                          }
+                          size="icon"
+                          variant="destructive"
+                        />
                       </TableCell>
                     </TableRow>
                   );
