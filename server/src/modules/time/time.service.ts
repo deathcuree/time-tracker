@@ -2,6 +2,23 @@ import mongoose from 'mongoose';
 import TimeEntry from './time.model.js';
 import { ITimeEntry } from '../../types/models.js';
 
+const PH_TZ = 'Asia/Manila';
+
+function getPHDateString(d: Date): string {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: PH_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return fmt.format(d);
+}
+
+function phMidnightUTC(d: Date): Date {
+  const ymd = getPHDateString(d);
+  return new Date(`${ymd}T00:00:00+08:00`);
+}
+
 export const TimeService = {
   clockIn: async (userId: string): Promise<ITimeEntry> => {
     const activeEntry = await TimeEntry.findOne({
@@ -16,11 +33,11 @@ export const TimeService = {
     }
 
     const now = new Date();
-    const dateUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const datePHStartUTC = phMidnightUTC(now);
 
     const timeEntry = new TimeEntry({
       userId: new mongoose.Types.ObjectId(userId),
-      date: dateUTC,
+      date: datePHStartUTC,
       clockIn: now,
     }) as ITimeEntry;
 
@@ -92,24 +109,23 @@ export const TimeService = {
 
   getTimeStats: async (userId: string) => {
     const now = new Date();
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    const tomorrow = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
-    );
+    const todayPHStartUTC = phMidnightUTC(now);
+    const tomorrowPHStartUTC = new Date(todayPHStartUTC.getTime() + 24 * 60 * 60 * 1000);
 
-    const startOfWeek = new Date(today);
-    const day = startOfWeek.getUTCDay();
-    const diffToMonday = (day === 0 ? -6 : 1) - day;
-    startOfWeek.setUTCDate(startOfWeek.getUTCDate() + diffToMonday);
+    const dayPH = new Date(todayPHStartUTC.getTime() + 8 * 60 * 60 * 1000).getUTCDay();
+    const diffToMondayPH = (dayPH === 0 ? -6 : 1) - dayPH;
+    const startOfWeekPHStartUTC = new Date(
+      todayPHStartUTC.getTime() + diffToMondayPH * 24 * 60 * 60 * 1000,
+    );
 
     const todayEntries = await TimeEntry.find({
       userId: new mongoose.Types.ObjectId(userId),
       $or: [
-        { clockIn: { $gte: today, $lt: tomorrow } },
+        { clockIn: { $gte: todayPHStartUTC, $lt: tomorrowPHStartUTC } },
         { clockOut: null },
         {
-          clockIn: { $lt: today },
-          clockOut: { $gte: today, $lt: tomorrow },
+          clockIn: { $lt: todayPHStartUTC },
+          clockOut: { $gte: todayPHStartUTC, $lt: tomorrowPHStartUTC },
         },
       ],
     });
@@ -117,8 +133,8 @@ export const TimeService = {
     const weekEntries = await TimeEntry.find({
       userId: new mongoose.Types.ObjectId(userId),
       date: {
-        $gte: startOfWeek,
-        $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+        $gte: startOfWeekPHStartUTC,
+        $lt: tomorrowPHStartUTC,
       },
     });
 
@@ -127,8 +143,8 @@ export const TimeService = {
       const clockIn = new Date(entry.clockIn);
       const clockOut = entry.clockOut ? new Date(entry.clockOut) : new Date();
 
-      const startTime = clockIn < today ? today : clockIn;
-      const endTime = clockOut > tomorrow ? tomorrow : clockOut;
+      const startTime = clockIn < todayPHStartUTC ? todayPHStartUTC : clockIn;
+      const endTime = clockOut > tomorrowPHStartUTC ? tomorrowPHStartUTC : clockOut;
 
       const hoursWorked = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
       totalHoursToday += hoursWorked;
